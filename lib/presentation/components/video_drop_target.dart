@@ -1,0 +1,80 @@
+/*
+ * jvp (Jamy-chan Video Player)
+ * Copyright (C) 2026 iwaxse
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:desktop_drop/desktop_drop.dart';
+import '../../application/app_event_bus.dart';
+
+class VideoDropTarget extends StatefulWidget {
+  final Widget child;
+
+  const VideoDropTarget({super.key, required this.child});
+
+  @override
+  State<VideoDropTarget> createState() => _VideoDropTargetState();
+}
+
+class _VideoDropTargetState extends State<VideoDropTarget> {
+  bool _isDragging = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final eventBus = context.read<AppEventBus>();
+    return DropTarget(
+      onDragEntered: (details) => setState(() => _isDragging = true),
+      onDragExited: (details) => setState(() => _isDragging = false),
+      onDragDone: (details) async {
+        setState(() => _isDragging = false);
+        if (details.files.isNotEmpty) {
+          eventBus.publish(OpenFileAction(details.files.first.path));
+        }
+      },
+      child: Stack(
+        children: [
+          widget.child,
+          if (_isDragging)
+            Container(
+              color: Colors.black.withValues(alpha: 0.85),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 24,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFF333333)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Text(
+                    'Drop to Import',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}

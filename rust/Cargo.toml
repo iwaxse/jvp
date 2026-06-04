@@ -1,0 +1,25 @@
+[package]
+name = "rust_lib_jvp"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+flutter_rust_bridge = "=2.11.1"
+ffmpeg-next = "8.1"
+wgpu = "22.1"
+glam = { version = "0.29", features = ["bytemuck"] }
+bytemuck = { version = "1.15", features = ["derive"] }
+once_cell = "1.19"
+metal = "0.29.0"
+objc = "0.2.7"
+anyhow = "1.0"
+pollster = "0.3"
+cpal = "0.15"
+ringbuf = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["rt", "macros", "sync", "time"] }
+core-foundation = "0.9"

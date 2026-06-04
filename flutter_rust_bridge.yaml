@@ -1,0 +1,4 @@
+rust_input: "crate::api::simple"
+rust_root: "rust/"
+dart_output: "lib/infrastructure/adapter/rust/generated/"
+rust_output: "rust/src/frb_generated.rs"

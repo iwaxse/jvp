@@ -1,0 +1,23 @@
+name: jvp
+description: "Jamy-chan Video Player - A high-performance Flutter video player with Rust backend."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  flutter_rust_bridge: 2.11.1
+  desktop_drop: ^0.7.0
+  provider: ^6.1.5+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
