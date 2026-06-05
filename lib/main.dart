@@ -25,7 +25,7 @@ import 'infrastructure/adapter/rust/generated/frb_generated.dart';
 import 'infrastructure/repository/video_repository_impl.dart';
 import 'application/app_event_bus.dart';
 import 'domain/repository/video_repository.dart';
-import 'presentation/view_models/video_player_view_model.dart';
+import 'presentation/video_player_view_model.dart';
 import 'presentation/video_player_view.dart';
 
 void main(List<String> args) async {

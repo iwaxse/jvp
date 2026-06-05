@@ -21,16 +21,16 @@ import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../application/app_event_bus.dart';
 
-class VideoDropTarget extends StatefulWidget {
+class VideoDropTargetWidget extends StatefulWidget {
   final Widget child;
 
-  const VideoDropTarget({super.key, required this.child});
+  const VideoDropTargetWidget({super.key, required this.child});
 
   @override
-  State<VideoDropTarget> createState() => _VideoDropTargetState();
+  State<VideoDropTargetWidget> createState() => _VideoDropTargetWidgetState();
 }
 
-class _VideoDropTargetState extends State<VideoDropTarget> {
+class _VideoDropTargetWidgetState extends State<VideoDropTargetWidget> {
   bool _isDragging = false;
 
   @override

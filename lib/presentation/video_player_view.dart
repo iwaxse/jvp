@@ -21,10 +21,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../application/app_event_bus.dart';
-import 'view_models/video_player_view_model.dart';
-import 'components/shader_settings_panel.dart';
-import 'components/video_control_bar.dart';
-import 'components/video_drop_target.dart';
+import 'video_player_view_model.dart';
+import 'components/shader_settings_panel_widget.dart';
+import 'components/video_control_bar_widget.dart';
+import 'components/video_drop_target_widget.dart';
 
 class VideoPlayerView extends StatefulWidget {
   const VideoPlayerView({super.key});
@@ -148,7 +148,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
-      body: VideoDropTarget(
+      body: VideoDropTargetWidget(
         child: Stack(
           children: [
             GestureDetector(
@@ -186,7 +186,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
               left: 24,
               right: _showTuner ? 364 : 24,
               bottom: _showControlBar ? 24 : -100,
-              child: const VideoControlBar(),
+              child: const VideoControlBarWidget(),
             ),
             AnimatedPositioned(
               duration: const Duration(milliseconds: 250),
@@ -195,7 +195,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
               bottom: 0,
               right: _showTuner ? 0 : -340,
               width: 340,
-              child: ShaderSettingsPanel(
+              child: ShaderSettingsPanelWidget(
                 onClose: () {
                   setState(() {
                     _showTuner = false;
