@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../application/app_event_bus.dart';
-import '../video_player_view_model.dart';
+import '../video_player_view_controller.dart';
 
 class VideoDropTargetWidget extends StatelessWidget {
   final Widget child;
@@ -30,16 +30,16 @@ class VideoDropTargetWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final eventBus = context.read<AppEventBus>();
-    final viewModel = context.read<VideoPlayerViewModel>();
-    final isDragging = context.select<VideoPlayerViewModel, bool>(
-      (vm) => vm.isDraggingFile,
+    final controller = context.read<VideoPlayerViewController>();
+    final isDragging = context.select<VideoPlayerViewController, bool>(
+      (c) => c.isDraggingFile,
     );
 
     return DropTarget(
-      onDragEntered: (details) => viewModel.isDraggingFile = true,
-      onDragExited: (details) => viewModel.isDraggingFile = false,
+      onDragEntered: (details) => controller.isDraggingFile = true,
+      onDragExited: (details) => controller.isDraggingFile = false,
       onDragDone: (details) async {
-        viewModel.isDraggingFile = false;
+        controller.isDraggingFile = false;
         if (details.files.isNotEmpty) {
           eventBus.publish(OpenFileAction(details.files.first.path));
         }

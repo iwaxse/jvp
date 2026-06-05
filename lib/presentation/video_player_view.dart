@@ -18,6 +18,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'video_player_view_controller.dart';
 import 'video_player_view_model.dart';
 import 'components/shader_settings_panel_widget.dart';
 import 'components/video_control_bar_widget.dart';
@@ -29,76 +30,86 @@ class VideoPlayerView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
-    final isLoaded = context.select<VideoPlayerViewModel, bool>(
-      (vm) => vm.isLoaded,
-    );
-    final textureId = context.select<VideoPlayerViewModel, int?>(
-      (vm) => vm.textureId,
-    );
-    final width = context.select<VideoPlayerViewModel, int>((vm) => vm.width);
-    final height = context.select<VideoPlayerViewModel, int>((vm) => vm.height);
-    final showTuner = context.select<VideoPlayerViewModel, bool>(
-      (vm) => vm.showTuner,
-    );
-    final showControlBar = context.select<VideoPlayerViewModel, bool>(
-      (vm) => vm.showControlBar,
-    );
+    return ChangeNotifierProvider<VideoPlayerViewController>(
+      create: (context) => VideoPlayerViewController(context, viewModel),
+      child: Consumer<VideoPlayerViewController>(
+        builder: (context, controller, _) {
+          final isLoaded = context.select<VideoPlayerViewModel, bool>(
+            (vm) => vm.isLoaded,
+          );
+          final textureId = context.select<VideoPlayerViewModel, int?>(
+            (vm) => vm.textureId,
+          );
+          final width = context.select<VideoPlayerViewModel, int>(
+            (vm) => vm.width,
+          );
+          final height = context.select<VideoPlayerViewModel, int>(
+            (vm) => vm.height,
+          );
+          final showTuner = context.select<VideoPlayerViewController, bool>(
+            (c) => c.showTuner,
+          );
+          final showControlBar = context
+              .select<VideoPlayerViewController, bool>((c) => c.showControlBar);
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
-      body: VideoDropTargetWidget(
-        child: Stack(
-          children: [
-            GestureDetector(
-              onTap: () {
-                viewModel.togglePlay();
-              },
-              onLongPress: () {
-                viewModel.showTuner = !viewModel.showTuner;
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Center(
-                child: isLoaded && textureId != null
-                    ? AspectRatio(
-                        aspectRatio: width / height,
-                        child: Texture(textureId: textureId),
-                      )
-                    : const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.movie_creation_outlined,
-                            color: Color(0xFF555555),
-                            size: 64,
-                          ),
-                          uiKeyLabel,
-                        ],
-                      ),
+          return Scaffold(
+            backgroundColor: const Color(0xFF0A0A0A),
+            body: VideoDropTargetWidget(
+              child: Stack(
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      viewModel.togglePlay();
+                    },
+                    onLongPress: () {
+                      controller.showTuner = !controller.showTuner;
+                    },
+                    behavior: HitTestBehavior.opaque,
+                    child: Center(
+                      child: isLoaded && textureId != null
+                          ? AspectRatio(
+                              aspectRatio: width / height,
+                              child: Texture(textureId: textureId),
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.movie_creation_outlined,
+                                  color: Color(0xFF555555),
+                                  size: 64,
+                                ),
+                                uiKeyLabel,
+                              ],
+                            ),
+                    ),
+                  ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    left: 24,
+                    right: showTuner ? 364 : 24,
+                    bottom: showControlBar ? 24 : -100,
+                    child: const VideoControlBarWidget(),
+                  ),
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    top: 0,
+                    bottom: 0,
+                    right: showTuner ? 0 : -340,
+                    width: 340,
+                    child: ShaderSettingsPanelWidget(
+                      onClose: () {
+                        controller.showTuner = false;
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              left: 24,
-              right: showTuner ? 364 : 24,
-              bottom: showControlBar ? 24 : -100,
-              child: const VideoControlBarWidget(),
-            ),
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOutCubic,
-              top: 0,
-              bottom: 0,
-              right: showTuner ? 0 : -340,
-              width: 340,
-              child: ShaderSettingsPanelWidget(
-                onClose: () {
-                  viewModel.showTuner = false;
-                },
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

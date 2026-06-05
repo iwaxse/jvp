@@ -20,7 +20,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import '../../application/app_event_bus.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
@@ -48,15 +47,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
   double? _pendingSeekSecs;
   StreamSubscription<String>? _eventSubscription;
   double _realTimeFps = 0.0;
-  bool _isDraggingFile = false;
-  bool _showTuner = false;
-  bool _showControlBar = true;
-  Timer? _leftHoldTimer;
-  Timer? _leftTapTimer;
-  Timer? _rightTapTimer;
-  bool _isRightHolding = false;
-  bool _isLeftHolding = false;
-
   bool get isLoaded => _isLoaded;
   bool get isPlaying => _isPlaying;
   bool get isLooping => _isLooping;
@@ -69,29 +59,10 @@ class VideoPlayerViewModel extends ChangeNotifier {
   double get realTimeFps => _realTimeFps;
   double get volume => _volume;
   bool get isMuted => _isMuted;
-  bool get isDraggingFile => _isDraggingFile;
-  bool get showTuner => _showTuner;
-  bool get showControlBar => _showControlBar;
-
-  set isDraggingFile(bool val) {
-    _isDraggingFile = val;
-    notifyListeners();
-  }
-
-  set showTuner(bool val) {
-    _showTuner = val;
-    notifyListeners();
-  }
-
-  set showControlBar(bool val) {
-    _showControlBar = val;
-    notifyListeners();
-  }
 
   VideoPlayerViewModel(this._repository, this._eventBus) {
     _initEventStream();
     _initActionListeners();
-    HardwareKeyboard.instance.addHandler(_onKeyEvent);
   }
 
   void _initActionListeners() {
@@ -105,74 +76,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
       (e) => updateScrubValue(e.seconds),
     );
     _eventBus.on<EndScrubbingAction>().listen((e) => endScrubbing(e.seconds));
-    _eventBus.on<ToggleTunerAction>().listen((_) {
-      _showTuner = !_showTuner;
-      notifyListeners();
-    });
-  }
-
-  bool _onKeyEvent(KeyEvent event) {
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.space) {
-        togglePlay();
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.keyD) {
-        _showControlBar = !_showControlBar;
-        notifyListeners();
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (_leftTapTimer != null || _isLeftHolding) return true;
-        stepFrame(-1);
-        _leftTapTimer = Timer(const Duration(milliseconds: 200), () {
-          _isLeftHolding = true;
-          _leftHoldTimer = Timer.periodic(const Duration(milliseconds: 33), (
-            timer,
-          ) {
-            stepFrame(-1);
-          });
-        });
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_rightTapTimer != null || _isRightHolding) return true;
-        stepFrame(1);
-        _rightTapTimer = Timer(const Duration(milliseconds: 200), () {
-          _isRightHolding = true;
-          play();
-        });
-        return true;
-      }
-    }
-
-    if (event is KeyUpEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (_leftTapTimer != null) {
-          _leftTapTimer!.cancel();
-          _leftTapTimer = null;
-        }
-        if (_isLeftHolding) {
-          _isLeftHolding = false;
-          _leftHoldTimer?.cancel();
-          _leftHoldTimer = null;
-        }
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_rightTapTimer != null) {
-          _rightTapTimer!.cancel();
-          _rightTapTimer = null;
-        }
-        if (_isRightHolding) {
-          _isRightHolding = false;
-          pause();
-        }
-        return true;
-      }
-    }
-
-    return false;
   }
 
   void _initEventStream() {
@@ -468,12 +371,8 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
     _playbackTimer?.cancel();
     _eventSubscription?.cancel();
-    _leftHoldTimer?.cancel();
-    _leftTapTimer?.cancel();
-    _rightTapTimer?.cancel();
     super.dispose();
   }
 }
