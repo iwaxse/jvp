@@ -16,123 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../application/app_event_bus.dart';
 import 'video_player_view_model.dart';
 import 'components/shader_settings_panel_widget.dart';
 import 'components/video_control_bar_widget.dart';
 import 'components/video_drop_target_widget.dart';
 
-class VideoPlayerView extends StatefulWidget {
+class VideoPlayerView extends StatelessWidget {
   const VideoPlayerView({super.key});
-
-  @override
-  State<VideoPlayerView> createState() => _VideoPlayerViewState();
-}
-
-class _VideoPlayerViewState extends State<VideoPlayerView> {
-  bool _showTuner = false;
-  bool _showControlBar = true;
-  StreamSubscription<ToggleTunerAction>? _tunerSub;
-  Timer? _leftHoldTimer;
-  Timer? _leftTapTimer;
-  Timer? _rightTapTimer;
-  bool _isRightHolding = false;
-  bool _isLeftHolding = false;
-
-  @override
-  void initState() {
-    super.initState();
-    HardwareKeyboard.instance.addHandler(_onKeyEvent);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final eventBus = context.read<AppEventBus>();
-      _tunerSub = eventBus.on<ToggleTunerAction>().listen((_) {
-        setState(() {
-          _showTuner = !_showTuner;
-        });
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    HardwareKeyboard.instance.removeHandler(_onKeyEvent);
-    _tunerSub?.cancel();
-    _leftHoldTimer?.cancel();
-    _leftTapTimer?.cancel();
-    _rightTapTimer?.cancel();
-    super.dispose();
-  }
-
-  bool _onKeyEvent(KeyEvent event) {
-    final viewModel = context.read<VideoPlayerViewModel>();
-
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.space) {
-        viewModel.togglePlay();
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.keyD) {
-        setState(() {
-          _showControlBar = !_showControlBar;
-        });
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (_leftTapTimer != null || _isLeftHolding) return true;
-        viewModel.stepFrame(-1);
-        _leftTapTimer = Timer(const Duration(milliseconds: 200), () {
-          _isLeftHolding = true;
-          _leftHoldTimer = Timer.periodic(const Duration(milliseconds: 33), (
-            timer,
-          ) {
-            viewModel.stepFrame(-1);
-          });
-        });
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_rightTapTimer != null || _isRightHolding) return true;
-        viewModel.stepFrame(1);
-        _rightTapTimer = Timer(const Duration(milliseconds: 200), () {
-          _isRightHolding = true;
-          viewModel.play();
-        });
-        return true;
-      }
-    }
-
-    if (event is KeyUpEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (_leftTapTimer != null) {
-          _leftTapTimer!.cancel();
-          _leftTapTimer = null;
-        }
-        if (_isLeftHolding) {
-          _isLeftHolding = false;
-          _leftHoldTimer?.cancel();
-          _leftHoldTimer = null;
-        }
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_rightTapTimer != null) {
-          _rightTapTimer!.cancel();
-          _rightTapTimer = null;
-        }
-        if (_isRightHolding) {
-          _isRightHolding = false;
-          viewModel.pause();
-        }
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -145,6 +37,12 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
     );
     final width = context.select<VideoPlayerViewModel, int>((vm) => vm.width);
     final height = context.select<VideoPlayerViewModel, int>((vm) => vm.height);
+    final showTuner = context.select<VideoPlayerViewModel, bool>(
+      (vm) => vm.showTuner,
+    );
+    final showControlBar = context.select<VideoPlayerViewModel, bool>(
+      (vm) => vm.showControlBar,
+    );
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
@@ -156,9 +54,7 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
                 viewModel.togglePlay();
               },
               onLongPress: () {
-                setState(() {
-                  _showTuner = !_showTuner;
-                });
+                viewModel.showTuner = !viewModel.showTuner;
               },
               behavior: HitTestBehavior.opaque,
               child: Center(
@@ -184,8 +80,8 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
               left: 24,
-              right: _showTuner ? 364 : 24,
-              bottom: _showControlBar ? 24 : -100,
+              right: showTuner ? 364 : 24,
+              bottom: showControlBar ? 24 : -100,
               child: const VideoControlBarWidget(),
             ),
             AnimatedPositioned(
@@ -193,13 +89,11 @@ class _VideoPlayerViewState extends State<VideoPlayerView> {
               curve: Curves.easeOutCubic,
               top: 0,
               bottom: 0,
-              right: _showTuner ? 0 : -340,
+              right: showTuner ? 0 : -340,
               width: 340,
               child: ShaderSettingsPanelWidget(
                 onClose: () {
-                  setState(() {
-                    _showTuner = false;
-                  });
+                  viewModel.showTuner = false;
                 },
               ),
             ),

@@ -20,35 +20,34 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../application/app_event_bus.dart';
+import '../video_player_view_model.dart';
 
-class VideoDropTargetWidget extends StatefulWidget {
+class VideoDropTargetWidget extends StatelessWidget {
   final Widget child;
 
   const VideoDropTargetWidget({super.key, required this.child});
 
   @override
-  State<VideoDropTargetWidget> createState() => _VideoDropTargetWidgetState();
-}
-
-class _VideoDropTargetWidgetState extends State<VideoDropTargetWidget> {
-  bool _isDragging = false;
-
-  @override
   Widget build(BuildContext context) {
     final eventBus = context.read<AppEventBus>();
+    final viewModel = context.read<VideoPlayerViewModel>();
+    final isDragging = context.select<VideoPlayerViewModel, bool>(
+      (vm) => vm.isDraggingFile,
+    );
+
     return DropTarget(
-      onDragEntered: (details) => setState(() => _isDragging = true),
-      onDragExited: (details) => setState(() => _isDragging = false),
+      onDragEntered: (details) => viewModel.isDraggingFile = true,
+      onDragExited: (details) => viewModel.isDraggingFile = false,
       onDragDone: (details) async {
-        setState(() => _isDragging = false);
+        viewModel.isDraggingFile = false;
         if (details.files.isNotEmpty) {
           eventBus.publish(OpenFileAction(details.files.first.path));
         }
       },
       child: Stack(
         children: [
-          widget.child,
-          if (_isDragging)
+          child,
+          if (isDragging)
             Container(
               color: Colors.black.withValues(alpha: 0.85),
               child: Center(
