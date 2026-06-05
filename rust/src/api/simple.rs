@@ -94,7 +94,12 @@ pub fn set_shader_intensity(shader: String, intensity: f32) {
 }
 
 pub fn get_active_shader() -> String {
-    PlaybackService::get_active_shader()
+    use crate::infrastructure::state::ACTIVE_SHADER;
+    ACTIVE_SHADER
+        .read()
+        .ok()
+        .map(|s| s.clone())
+        .unwrap_or_else(|| "none".to_string())
 }
 
 pub fn set_effect_intensity(effect: String, intensity: f32) {

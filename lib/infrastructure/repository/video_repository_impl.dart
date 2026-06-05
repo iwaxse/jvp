@@ -87,14 +87,4 @@ class VideoRepositoryImpl implements VideoRepository {
   Future<void> setVolume(double volume) async {
     await rust.setVolume(volume: volume);
   }
-
-  @override
-  Future<void> setShader(String shader) async {
-    await rust.setShader(shader: shader);
-  }
-
-  @override
-  Future<void> setShaderIntensity(String shader, double intensity) async {
-    await rust.setShaderIntensity(shader: shader, intensity: intensity);
-  }
 }

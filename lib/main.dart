@@ -38,14 +38,12 @@ void main(List<String> args) async {
         : '${Directory.current.path}/rust/target/debug/librust_lib_jvp.so';
     await RustLib.init(externalLibrary: ExternalLibrary.open(dylibPath));
   } else {
-    // リリースビルド（スタンドアロンアプリ）の場合、Contents/Frameworks 内から探す
     if (Platform.isMacOS) {
       final String dylibPath =
           '${File(Platform.resolvedExecutable).parent.parent.path}/Frameworks/librust_lib_jvp.dylib';
       if (await File(dylibPath).exists()) {
         await RustLib.init(externalLibrary: ExternalLibrary.open(dylibPath));
       } else {
-        // 見つからなければデフォルト（リンク済み想定）を試す
         await RustLib.init();
       }
     } else {

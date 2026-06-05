@@ -29,6 +29,4 @@ abstract class VideoRepository {
   Future<Thumbnail?> getThumbnail(double timeSec);
   Future<void> setEffectIntensity(String effect, double intensity);
   Future<void> setVolume(double volume);
-  Future<void> setShader(String shader);
-  Future<void> setShaderIntensity(String shader, double intensity);
 }

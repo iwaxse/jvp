@@ -38,7 +38,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
   int _width = 0;
   int _height = 0;
   double _fps = 0.0;
-  String _activeShader = 'none';
   double _volume = 0.0;
   bool _isMuted = true;
 
@@ -59,7 +58,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
   int get height => _height;
   double get fps => _fps;
   double get realTimeFps => _realTimeFps;
-  String get activeShader => _activeShader;
   double get volume => _volume;
   bool get isMuted => _isMuted;
 
@@ -74,10 +72,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
     _eventBus.on<ToggleLoopingAction>().listen((e) => toggleLooping());
     _eventBus.on<ToggleMuteAction>().listen((e) => toggleMute());
     _eventBus.on<SetVolumeAction>().listen((e) => setVolume(e.volume));
-    _eventBus.on<ChangeShaderAction>().listen((e) => changeShader(e.shader));
-    _eventBus.on<SetShaderIntensityAction>().listen(
-      (e) => setShaderIntensity(e.shader, e.value),
-    );
     _eventBus.on<StartScrubbingAction>().listen((e) => startScrubbing());
     _eventBus.on<UpdateScrubValueAction>().listen(
       (e) => updateScrubValue(e.seconds),
@@ -128,17 +122,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
           case 'playingState':
             _isPlaying = data as bool;
             _eventBus.publish(PlaybackStateEvent(_isPlaying));
-            notifyListeners();
-            break;
-          case 'shaderChanged':
-            _activeShader = data as String;
-            _repository.updateTexture();
-            _eventBus.publish(
-              ShaderStateEvent(
-                activeShader: _activeShader,
-                intensities: _shaderIntensities,
-              ),
-            );
             notifyListeners();
             break;
           case 'completed':
@@ -290,10 +273,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
     if (!_isLoaded) return;
     _currentPosSecs = seconds;
     _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
-    notifyListeners();
     await _repository.seek(seconds, accurate: true);
-    _currentPosSecs = seconds;
-    _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
     await _repository.updateTexture();
     notifyListeners();
   }
@@ -346,24 +326,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
     _effects[key] = value;
     notifyListeners();
     await _repository.setEffectIntensity(key, value);
-    await _repository.updateTexture();
-  }
-
-  final Map<String, double> _shaderIntensities = {'none': 1.0};
-
-  double getShaderIntensity(String shader) => _shaderIntensities[shader] ?? 1.0;
-
-  Future<void> changeShader(String shaderName) async {
-    _activeShader = shaderName;
-    notifyListeners();
-    await _repository.setShader(shaderName);
-    await _repository.updateTexture();
-  }
-
-  Future<void> setShaderIntensity(String shader, double value) async {
-    _shaderIntensities[shader] = value;
-    notifyListeners();
-    await _repository.setShaderIntensity(shader, value);
     await _repository.updateTexture();
   }
 

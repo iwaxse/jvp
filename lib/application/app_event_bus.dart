@@ -55,17 +55,6 @@ class SetVolumeAction extends AppEvent {
   SetVolumeAction(this.volume);
 }
 
-class ChangeShaderAction extends AppEvent {
-  final String shader;
-  ChangeShaderAction(this.shader);
-}
-
-class SetShaderIntensityAction extends AppEvent {
-  final String shader;
-  final double value;
-  SetShaderIntensityAction(this.shader, this.value);
-}
-
 class StartScrubbingAction extends AppEvent {}
 
 class UpdateScrubValueAction extends AppEvent {
@@ -112,12 +101,6 @@ class MuteStateEvent extends AppEvent {
   final bool isMuted;
   final double volume;
   MuteStateEvent({required this.isMuted, required this.volume});
-}
-
-class ShaderStateEvent extends AppEvent {
-  final String activeShader;
-  final Map<String, double> intensities;
-  ShaderStateEvent({required this.activeShader, required this.intensities});
 }
 
 class ToggleTunerAction extends AppEvent {}

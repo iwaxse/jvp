@@ -52,7 +52,6 @@ impl PlaybackService {
         let decoder = VideoDecoder::new(&path, true).map_err(|e| e.to_string())?;
         let thumb_decoder = VideoDecoder::new(&path, false).ok();
 
-        // Apply current volume state immediately to the new decoder
         let vol = f32::from_bits(crate::infrastructure::state::VOLUME.load(Ordering::SeqCst));
         decoder.set_volume(vol);
 
@@ -83,8 +82,6 @@ impl PlaybackService {
             Some(d) => d,
             None => return Err("Thumbnail decoder not ready".to_string()),
         };
-
-        // Do not seek the thumbnail decoder as AVAssetImageGenerator generates thumbnails out-of-band
 
         let target_width = 160;
         let target_height =
@@ -231,14 +228,6 @@ impl PlaybackService {
                 }
             }
         }
-    }
-
-    pub fn get_active_shader() -> String {
-        ACTIVE_SHADER
-            .read()
-            .ok()
-            .map(|s| s.clone())
-            .unwrap_or("none".to_string())
     }
 
     pub fn set_effect_intensity(effect: String, intensity: f32) {
