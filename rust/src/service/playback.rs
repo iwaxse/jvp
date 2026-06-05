@@ -150,7 +150,7 @@ impl PlaybackService {
         }
     }
 
-    pub fn seek(time_sec: f64, _accurate: bool) -> Result<(), String> {
+    pub fn seek(time_sec: f64, accurate: bool) -> Result<(), String> {
         let mut dec = DECODER.lock().map_err(|e| e.to_string())?;
         let decoder = match dec.as_mut() {
             Some(d) => d,
@@ -163,7 +163,9 @@ impl PlaybackService {
             }
         }
 
-        decoder.seek(time_sec, false).map_err(|e| e.to_string())?;
+        decoder
+            .seek(time_sec, accurate)
+            .map_err(|e| e.to_string())?;
         let _ = decoder.next_frame();
 
         if let Ok(mut state_lock) = RENDER_STATE.write() {

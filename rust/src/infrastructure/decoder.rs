@@ -13,7 +13,7 @@ extern "C" {
     );
     fn jvp_player_play(id: i64);
     fn jvp_player_pause(id: i64);
-    fn jvp_player_seek(id: i64, time_sec: f64);
+    fn jvp_player_seek(id: i64, time_sec: f64, accurate: i32);
     fn jvp_player_set_volume(id: i64, vol: f32);
     fn jvp_player_get_pts(id: i64) -> f64;
     fn jvp_player_copy_pixel_buffer(id: i64) -> *mut c_void;
@@ -100,8 +100,9 @@ impl VideoDecoder {
         unsafe { jvp_player_set_volume(self.texture_id, vol) };
     }
 
-    pub fn seek(&mut self, time_sec: f64, _any_frame: bool) -> Result<()> {
-        unsafe { jvp_player_seek(self.texture_id, time_sec) };
+    pub fn seek(&mut self, time_sec: f64, accurate: bool) -> Result<()> {
+        let acc = if accurate { 1 } else { 0 };
+        unsafe { jvp_player_seek(self.texture_id, time_sec, acc) };
         self.current_pts = time_sec;
         Ok(())
     }

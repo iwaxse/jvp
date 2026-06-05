@@ -25,6 +25,8 @@ class JvpTexture: NSObject, FlutterTexture {
     fileprivate var videoFps: Double = 30.0
     fileprivate var isPlayingState: Bool = false
     private var pendingFrame: Bool = false
+    private var isSeeking = false
+    private var pendingSeekTime: Double?
     
     init(registry: FlutterTextureRegistry) {
         self.registry = registry
@@ -219,13 +221,23 @@ class JvpTexture: NSObject, FlutterTexture {
         player?.pause()
     }
     
-    func seekVideo(toSeconds: Double) {
+    func seekVideo(toSeconds: Double, accurate: Bool) {
         guard let p = player else { return }
+        if isSeeking {
+            pendingSeekTime = toSeconds
+            return
+        }
+        isSeeking = true
         let time = CMTime(seconds: toSeconds, preferredTimescale: 600)
         p.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
             guard let self = self else { return }
             self.processNextFrame()
             self.onFrameAvailable()
+            self.isSeeking = false
+            if let nextTime = self.pendingSeekTime {
+                self.pendingSeekTime = nil
+                self.seekVideo(toSeconds: nextTime, accurate: accurate)
+            }
         }
     }
     
@@ -457,8 +469,8 @@ public func jvp_player_pause(id: Int64) {
 }
 
 @_cdecl("jvp_player_seek")
-public func jvp_player_seek(id: Int64, time_sec: Double) {
-    getInstance(id)?.seekVideo(toSeconds: time_sec)
+public func jvp_player_seek(id: Int64, time_sec: Double, accurate: Int32) {
+    getInstance(id)?.seekVideo(toSeconds: time_sec, accurate: accurate != 0)
 }
 
 @_cdecl("jvp_player_set_volume")
