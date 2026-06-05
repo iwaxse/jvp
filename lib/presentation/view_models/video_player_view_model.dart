@@ -111,7 +111,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
               _currentPosSecs = pts;
               _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
             }
-            _repository.updateTexture();
             notifyListeners();
             break;
           case 'renderFps':

@@ -24,6 +24,7 @@ class JvpTexture: NSObject, FlutterTexture {
     fileprivate var videoDuration: Double = 0.0
     fileprivate var videoFps: Double = 30.0
     fileprivate var isPlayingState: Bool = false
+    private var pendingFrame: Bool = false
     
     init(registry: FlutterTextureRegistry) {
         self.registry = registry
@@ -43,11 +44,12 @@ class JvpTexture: NSObject, FlutterTexture {
         if let link = displayLink {
             let callback: CVDisplayLinkOutputCallback = { (displayLink, inNow, inOutputTime, flagsIn, flagsOut, displayLinkContext) -> CVReturn in
                 let mySelf = Unmanaged<JvpTexture>.fromOpaque(displayLinkContext!).takeUnretainedValue()
-                RunLoop.main.perform(inModes: [.common]) {
-                    if mySelf.isPlayingState {
-                        mySelf.processNextFrame()
-                        mySelf.onFrameAvailable()
-                    }
+                guard mySelf.isPlayingState, !mySelf.pendingFrame else { return kCVReturnSuccess }
+                mySelf.pendingFrame = true
+                DispatchQueue.main.async {
+                    mySelf.processNextFrame()
+                    mySelf.onFrameAvailable()
+                    mySelf.pendingFrame = false
                 }
                 return kCVReturnSuccess
             }
