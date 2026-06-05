@@ -78,6 +78,7 @@ pub struct VideoDecoder {
     cache: VecDeque<CachedFrame>,
     max_cache_size: usize,
     pub current_pts: f64,
+    pub keyframe_pts_list: Vec<f64>,
 }
 
 unsafe impl Send for VideoDecoder {}
@@ -218,14 +219,29 @@ impl VideoDecoder {
             cache: VecDeque::with_capacity(max_cache_size),
             max_cache_size,
             current_pts: 0.0,
+            keyframe_pts_list: Vec::new(),
         })
     }
 
     pub fn seek(&mut self, time_sec: f64, any_frame: bool) -> Result<()> {
         self.audio_buffer.clear();
         self.video_packet_queue.clear();
+
+        let mut target_time = time_sec;
+        if !self.keyframe_pts_list.is_empty() {
+            let mut best_kf = self.keyframe_pts_list[0];
+            for &kf in &self.keyframe_pts_list {
+                if kf <= time_sec {
+                    best_kf = kf;
+                } else {
+                    break;
+                }
+            }
+            target_time = best_kf;
+        }
+
         let time_base = self.time_base;
-        let stream_ts = (time_sec / f64::from(time_base)) as i64;
+        let stream_ts = (target_time / f64::from(time_base)) as i64;
         let flags = if any_frame {
             ffi::AVSEEK_FLAG_BACKWARD | ffi::AVSEEK_FLAG_ANY
         } else {
@@ -240,8 +256,9 @@ impl VideoDecoder {
                 stream_ts,
                 flags,
             );
+
             if ret < 0 {
-                let timestamp = (time_sec * 1_000_000.0) as i64;
+                let timestamp = (target_time * 1_000_000.0) as i64;
                 self.input_context.seek(timestamp, ..timestamp)?;
             }
         }
@@ -258,6 +275,14 @@ impl VideoDecoder {
             if self.decoder.receive_frame(&mut self.raw_frame).is_ok() {
                 let pts = self.raw_frame.pts().unwrap_or(0);
                 let pts_sec = pts as f64 * f64::from(self.time_base);
+
+                if self.raw_frame.is_key() {
+                    if !self.keyframe_pts_list.contains(&pts_sec) {
+                        self.keyframe_pts_list.push(pts_sec);
+                        self.keyframe_pts_list
+                            .sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    }
+                }
 
                 if self.hw_accel && self.raw_frame.format() == Pixel::VIDEOTOOLBOX {
                     self.current_pts = pts_sec;
@@ -305,7 +330,6 @@ impl VideoDecoder {
                 return Ok(Some(pts_sec));
             }
 
-            // video_packet_queueにあれば先に消費(prefetch_audioで溜めたもの)
             let eof = if let Some(pkt) = self.video_packet_queue.pop_front() {
                 self.decoder.send_packet(&pkt)?;
                 false

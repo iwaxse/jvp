@@ -55,6 +55,10 @@ fn update_textures_from_decoder(
         }
     }
 
+    if decoder.hw_accel {
+        return;
+    }
+
     state.resize_input_texture(w, h);
     if let Some(input_tex) = &state.input_texture {
         decoder.write_to_texture(&state.queue, input_tex);
@@ -243,6 +247,8 @@ impl PlaybackService {
                     if let Ok(mut state_lock) = RENDER_STATE.write() {
                         if let Some(state) = &mut *state_lock {
                             state.update_input_from_cv_buffer(cv_buf);
+                            decoder.current_pts = time_sec;
+                            decoder.audio_buffer.clear();
                             found_in_cache = true;
                         }
                     }
@@ -252,6 +258,8 @@ impl PlaybackService {
                     if let Some(state) = &*state_lock {
                         if let Some(input_tex) = &state.input_texture {
                             if decoder.write_cache_to_texture(time_sec, &state.queue, input_tex) {
+                                decoder.current_pts = time_sec;
+                                decoder.audio_buffer.clear();
                                 found_in_cache = true;
                             }
                         }
