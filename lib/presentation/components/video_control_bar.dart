@@ -35,6 +35,14 @@ class _VideoControlBarState extends State<VideoControlBar> {
   StreamSubscription<dynamic>? _positionSub;
   StreamSubscription<dynamic>? _loadedSub;
   double _currentPosSecs = 0.0;
+  final FocusNode _sliderFocusNode = FocusNode(
+    canRequestFocus: false,
+    skipTraversal: true,
+  );
+  final FocusNode _volumeFocusNode = FocusNode(
+    canRequestFocus: false,
+    skipTraversal: true,
+  );
 
   final GlobalKey _sliderKey = GlobalKey();
   OverlayEntry? _thumbnailOverlay;
@@ -74,6 +82,8 @@ class _VideoControlBarState extends State<VideoControlBar> {
     _positionSub?.cancel();
     _loadedSub?.cancel();
     _removeThumbnail();
+    _sliderFocusNode.dispose();
+    _volumeFocusNode.dispose();
     super.dispose();
   }
 
@@ -268,6 +278,7 @@ class _VideoControlBarState extends State<VideoControlBar> {
                       ),
                       child: Slider(
                         key: _sliderKey,
+                        focusNode: _sliderFocusNode,
                         value: displayValue,
                         max: max,
                         onChangeStart: (val) {
@@ -359,6 +370,7 @@ class _VideoControlBarState extends State<VideoControlBar> {
                           ),
                         ),
                         child: Slider(
+                          focusNode: _volumeFocusNode,
                           value: volume,
                           onChanged: (val) {
                             eventBus.publish(SetVolumeAction(val));

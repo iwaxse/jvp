@@ -281,6 +281,19 @@ class VideoPlayerViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> stepFrame(int frames) async {
+    if (!_isLoaded) return;
+    if (_isPlaying) {
+      await pause();
+    }
+    final frameDuration = _fps > 0 ? (1.0 / _fps) : (1.0 / 30.0);
+    final target = (_currentPosSecs + frames * frameDuration).clamp(
+      0.0,
+      _durationSecs,
+    );
+    await seekTo(target);
+  }
+
   Future<Thumbnail?> getThumbnail(double seconds) async {
     if (!_isLoaded) return null;
     try {
