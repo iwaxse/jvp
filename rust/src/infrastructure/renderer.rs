@@ -368,6 +368,7 @@ impl RenderState {
             fn CVPixelBufferGetPixelFormatType(pb: *mut c_void) -> u32;
             fn CVPixelBufferGetWidthOfPlane(pb: *mut c_void, planeIndex: usize) -> usize;
             fn CVPixelBufferGetHeightOfPlane(pb: *mut c_void, planeIndex: usize) -> usize;
+            fn CVMetalTextureCacheFlush(textureCache: *mut c_void, options: usize);
         }
 
         let fmt = unsafe { CVPixelBufferGetPixelFormatType(pixel_buffer) };
@@ -424,6 +425,7 @@ impl RenderState {
             )
         };
 
+        let mut success = false;
         if status_y == 0 && status_uv == 0 {
             unsafe {
                 let mtl_y = CVMetalTextureGetTexture(cv_tex_y);
@@ -526,14 +528,25 @@ impl RenderState {
                         }
                         self.current_cv_tex_y = Some(RawPtr(cv_tex_y));
                         self.current_cv_tex_uv = Some(RawPtr(cv_tex_uv));
-                        return true;
+                        success = true;
                     }
                 }
-                CFRelease(cv_tex_y);
-                CFRelease(cv_tex_uv);
             }
         }
-        false
+        if !success {
+            unsafe {
+                if !cv_tex_y.is_null() {
+                    CFRelease(cv_tex_y);
+                }
+                if !cv_tex_uv.is_null() {
+                    CFRelease(cv_tex_uv);
+                }
+            }
+        }
+        unsafe {
+            CVMetalTextureCacheFlush(cache_ptr, 0);
+        }
+        success
     }
 
     fn update_bind_group(&mut self) {
@@ -659,9 +672,7 @@ impl RenderState {
             rp.draw(0..3, 0..1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
-        if !crate::infrastructure::state::IS_PLAYING.load(std::sync::atomic::Ordering::SeqCst) {
-            self.device.poll(wgpu::Maintain::Wait);
-        }
+        self.device.poll(wgpu::Maintain::Wait);
     }
 }
 

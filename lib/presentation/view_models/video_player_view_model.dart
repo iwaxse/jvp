@@ -23,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import '../../application/app_event_bus.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
+import '../../infrastructure/adapter/rust/generated/api/simple.dart' as rust;
 
 class VideoPlayerViewModel extends ChangeNotifier {
   final VideoRepository _repository;
@@ -37,7 +38,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
   int _width = 0;
   int _height = 0;
   double _fps = 0.0;
-  String _activeShader = 'none';
   double _volume = 0.0;
   bool _isMuted = true;
 
@@ -58,7 +58,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
   int get height => _height;
   double get fps => _fps;
   double get realTimeFps => _realTimeFps;
-  String get activeShader => _activeShader;
   double get volume => _volume;
   bool get isMuted => _isMuted;
 
@@ -73,10 +72,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
     _eventBus.on<ToggleLoopingAction>().listen((e) => toggleLooping());
     _eventBus.on<ToggleMuteAction>().listen((e) => toggleMute());
     _eventBus.on<SetVolumeAction>().listen((e) => setVolume(e.volume));
-    _eventBus.on<ChangeShaderAction>().listen((e) => changeShader(e.shader));
-    _eventBus.on<SetShaderIntensityAction>().listen(
-      (e) => setShaderIntensity(e.shader, e.value),
-    );
     _eventBus.on<StartScrubbingAction>().listen((e) => startScrubbing());
     _eventBus.on<UpdateScrubValueAction>().listen(
       (e) => updateScrubValue(e.seconds),
@@ -116,7 +111,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
               _currentPosSecs = pts;
               _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
             }
-            _repository.updateTexture();
             notifyListeners();
             break;
           case 'renderFps':
@@ -129,27 +123,8 @@ class VideoPlayerViewModel extends ChangeNotifier {
             _eventBus.publish(PlaybackStateEvent(_isPlaying));
             notifyListeners();
             break;
-          case 'shaderChanged':
-            _activeShader = data as String;
-            _repository.updateTexture();
-            _eventBus.publish(
-              ShaderStateEvent(
-                activeShader: _activeShader,
-                intensities: _shaderIntensities,
-              ),
-            );
-            notifyListeners();
-            break;
           case 'completed':
-            if (_isLooping) {
-              seekTo(0.0);
-              play();
-            } else {
-              _isPlaying = false;
-              seekTo(0.0);
-              _eventBus.publish(PlaybackStateEvent(false));
-            }
-            notifyListeners();
+            _handleCompleted();
             break;
         }
       } catch (e) {
@@ -158,10 +133,23 @@ class VideoPlayerViewModel extends ChangeNotifier {
     });
   }
 
+  Future<void> _handleCompleted() async {
+    if (_isLooping) {
+      await seekTo(0.0);
+      await play();
+    } else {
+      _isPlaying = false;
+      await seekTo(0.0);
+      _eventBus.publish(PlaybackStateEvent(false));
+    }
+    notifyListeners();
+  }
+
   Future<void> openFile(String filePath) async {
     try {
       _stopPlayback();
       final info = await _repository.openVideo(filePath);
+      await _repository.setVolume(_isMuted ? 0.0 : _volume);
 
       final result = await _repository.initTexture(info.width, info.height);
       if (result != null) {
@@ -187,16 +175,41 @@ class VideoPlayerViewModel extends ChangeNotifier {
     }
   }
 
+  Timer? _playbackTimer;
+
   Future<void> play() async {
     if (!_isLoaded) return;
     await _repository.setPlaying(true);
     _isPlaying = true;
     _eventBus.publish(PlaybackStateEvent(true));
+    _startPlaybackTimer();
     notifyListeners();
+  }
+
+  void _startPlaybackTimer() {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 33), (
+      timer,
+    ) async {
+      if (!_isPlaying || !_isLoaded) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final ok = await rust.updateFrame();
+        if (!ok) {
+          timer.cancel();
+          await pause();
+        }
+      } catch (e) {
+        debugPrint("Error updating frame: $e");
+      }
+    });
   }
 
   Future<void> pause() async {
     if (!_isLoaded) return;
+    _playbackTimer?.cancel();
     await _repository.setPlaying(false);
     _isPlaying = false;
     _eventBus.publish(PlaybackStateEvent(false));
@@ -263,10 +276,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
     if (!_isLoaded) return;
     _currentPosSecs = seconds;
     _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
-    notifyListeners();
     await _repository.seek(seconds, accurate: true);
-    _currentPosSecs = seconds;
-    _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
     await _repository.updateTexture();
     notifyListeners();
   }
@@ -319,19 +329,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
     _effects[key] = value;
     notifyListeners();
     await _repository.setEffectIntensity(key, value);
-  }
-
-  final Map<String, double> _shaderIntensities = {'none': 1.0};
-
-  double getShaderIntensity(String shader) => 1.0;
-
-  Future<void> changeShader(String shaderName) async {
-    _activeShader = shaderName;
-    notifyListeners();
-  }
-
-  Future<void> setShaderIntensity(String shader, double value) async {
-    notifyListeners();
+    await _repository.updateTexture();
   }
 
   void setVolume(double val) {
@@ -351,6 +349,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   void _stopPlayback() {
+    _playbackTimer?.cancel();
     _isLoaded = false;
     _isPlaying = false;
     _textureId = null;
@@ -360,6 +359,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _playbackTimer?.cancel();
     _eventSubscription?.cancel();
     super.dispose();
   }
