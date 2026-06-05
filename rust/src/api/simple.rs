@@ -104,3 +104,25 @@ pub fn set_effect_intensity(effect: String, intensity: f32) {
 pub fn set_volume(volume: f32) {
     PlaybackService::set_volume(volume);
 }
+
+#[no_mangle]
+pub extern "C" fn jvp_player_update_input_cv_buffer(pixel_buffer: *mut std::ffi::c_void) {
+    if let Ok(mut state_lock) = RENDER_STATE.write() {
+        if let Some(state) = &mut *state_lock {
+            state.update_input_from_cv_buffer(pixel_buffer);
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn jvp_player_set_output_texture(
+    ptr: *mut std::ffi::c_void,
+    width: i32,
+    height: i32,
+) {
+    if let Ok(mut state_lock) = RENDER_STATE.write() {
+        if let Some(state) = &mut *state_lock {
+            state.init_output_texture(ptr, width as u32, height as u32);
+        }
+    }
+}

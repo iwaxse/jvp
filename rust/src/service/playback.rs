@@ -52,6 +52,10 @@ impl PlaybackService {
         let decoder = VideoDecoder::new(&path, true).map_err(|e| e.to_string())?;
         let thumb_decoder = VideoDecoder::new(&path, false).ok();
 
+        // Apply current volume state immediately to the new decoder
+        let vol = f32::from_bits(crate::infrastructure::state::VOLUME.load(Ordering::SeqCst));
+        decoder.set_volume(vol);
+
         let info = VideoInfo {
             width: decoder.width,
             height: decoder.height,
@@ -80,14 +84,13 @@ impl PlaybackService {
             None => return Err("Thumbnail decoder not ready".to_string()),
         };
 
-        decoder.seek(time_sec, false).map_err(|e| e.to_string())?;
-        let _ = decoder.next_frame();
+        // Do not seek the thumbnail decoder as AVAssetImageGenerator generates thumbnails out-of-band
 
         let target_width = 160;
         let target_height =
             (decoder.height as f32 * (target_width as f32 / decoder.width as f32)) as u32;
         let (data, width, height) = decoder
-            .get_scaled_rgba(target_width, target_height)
+            .get_scaled_rgba(time_sec, target_width, target_height)
             .map_err(|e| e.to_string())?;
 
         Ok(Thumbnail {
@@ -135,11 +138,6 @@ impl PlaybackService {
 
         match decoder.next_frame() {
             Ok(Some(pts_sec)) => {
-                if let Ok(mut state_lock) = RENDER_STATE.write() {
-                    if let Some(state) = &mut *state_lock {
-                        update_textures_from_decoder(state, decoder);
-                    }
-                }
                 emit_event("frame", &format!("{{\"pts_sec\": {}}}", pts_sec));
                 Ok(true)
             }

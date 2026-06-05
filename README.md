@@ -19,7 +19,7 @@ I'm not like, a hardcore player dev or anything, so if you fork this and write s
 
 - **OMG! Real Zero-Copy Pipeline**: No CPU copies at all! VideoToolbox decodes straight to `CVPixelBuffer` (GPU), mapped via `CVMetalTextureCache` straight to WGPU textures, and rendered directly onto Flutter's Swift texture. It's like, totally hands-off for the CPU! 🚀
 - **Super Fast Scrub Cache**: We cache those CoreVideo texture references so scrubbing backwards and forwards is like, instant QuickTime-style smooth!
-- **High-Speed Decoupled Rendering**: Decouples FFmpeg decoding from WGPU rendering. Swift shared textures run at native screen refresh rates (60/120 FPS) while video frames decode at their native rates.
+- **High-Speed Decoupled Rendering**: Decouples native AVPlayer decoding from WGPU rendering. Swift shared textures run at native screen refresh rates (60/120 FPS) matching the display's V-Sync, while video frames decode at their native rates.
 - **Custom WGSL Shaders**: Apply real-time effects like Blur, Sharpen, HDR, Vintage, Cyberpunk, Clean Cinema, and Vignette with intensity tuning (and yes, they run totally safe inside loops now, no GPU freezes allowed!).
 - **Modern Slide-In UI Panel**: Controls and shader parameters slide in from the right, preventing them from obscuring the active video area.
 - **Intuitive Player Operations**:
@@ -30,7 +30,7 @@ I'm not like, a hardcore player dev or anything, so if you fork this and write s
 
 ## 💅 Prerequisites
 
-Omg! There are literally **NO prerequisites**! 🙅‍♀️✨ We fully leverage macOS's native `AVPlayer` and `AVFoundation` framework under the hood, meaning you don't need to install FFmpeg or any other bulky libraries! Just run the app and start slaying! 💅🔥
+Omg! There are literally **NO prerequisites**! 🙅‍♀️✨ We fully leverage macOS's native `AVPlayer` and `AVFoundation` framework under the hood, meaning you don't need to install any external libraries! Just run the app and start slaying! 💅🔥
 
 ## 🚀 How to Use
 

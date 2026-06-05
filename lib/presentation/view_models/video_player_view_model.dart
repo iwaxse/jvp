@@ -23,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import '../../application/app_event_bus.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
+import '../../infrastructure/adapter/rust/generated/api/simple.dart' as rust;
 
 class VideoPlayerViewModel extends ChangeNotifier {
   final VideoRepository _repository;
@@ -162,6 +163,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
     try {
       _stopPlayback();
       final info = await _repository.openVideo(filePath);
+      await _repository.setVolume(_isMuted ? 0.0 : _volume);
 
       final result = await _repository.initTexture(info.width, info.height);
       if (result != null) {
@@ -187,16 +189,41 @@ class VideoPlayerViewModel extends ChangeNotifier {
     }
   }
 
+  Timer? _playbackTimer;
+
   Future<void> play() async {
     if (!_isLoaded) return;
     await _repository.setPlaying(true);
     _isPlaying = true;
     _eventBus.publish(PlaybackStateEvent(true));
+    _startPlaybackTimer();
     notifyListeners();
+  }
+
+  void _startPlaybackTimer() {
+    _playbackTimer?.cancel();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 33), (
+      timer,
+    ) async {
+      if (!_isPlaying || !_isLoaded) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final ok = await rust.updateFrame();
+        if (!ok) {
+          timer.cancel();
+          await pause();
+        }
+      } catch (e) {
+        debugPrint("Error updating frame: $e");
+      }
+    });
   }
 
   Future<void> pause() async {
     if (!_isLoaded) return;
+    _playbackTimer?.cancel();
     await _repository.setPlaying(false);
     _isPlaying = false;
     _eventBus.publish(PlaybackStateEvent(false));
@@ -319,19 +346,25 @@ class VideoPlayerViewModel extends ChangeNotifier {
     _effects[key] = value;
     notifyListeners();
     await _repository.setEffectIntensity(key, value);
+    await _repository.updateTexture();
   }
 
   final Map<String, double> _shaderIntensities = {'none': 1.0};
 
-  double getShaderIntensity(String shader) => 1.0;
+  double getShaderIntensity(String shader) => _shaderIntensities[shader] ?? 1.0;
 
   Future<void> changeShader(String shaderName) async {
     _activeShader = shaderName;
     notifyListeners();
+    await _repository.setShader(shaderName);
+    await _repository.updateTexture();
   }
 
   Future<void> setShaderIntensity(String shader, double value) async {
+    _shaderIntensities[shader] = value;
     notifyListeners();
+    await _repository.setShaderIntensity(shader, value);
+    await _repository.updateTexture();
   }
 
   void setVolume(double val) {
@@ -351,6 +384,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   void _stopPlayback() {
+    _playbackTimer?.cancel();
     _isLoaded = false;
     _isPlaying = false;
     _textureId = null;
@@ -360,6 +394,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _playbackTimer?.cancel();
     _eventSubscription?.cancel();
     super.dispose();
   }

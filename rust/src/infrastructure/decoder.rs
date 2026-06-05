@@ -26,6 +26,9 @@ extern "C" {
         out_size: *mut i32,
     ) -> *mut u8;
     fn jvp_player_free_thumbnail_buffer(buffer: *mut u8, size: i32);
+    fn jvp_player_register_render_callback(callback: extern "C" fn());
+    fn jvp_player_register_update_input_callback(callback: extern "C" fn(*mut c_void));
+    fn jvp_player_register_set_output_callback(callback: extern "C" fn(*mut c_void, i32, i32));
 }
 
 pub struct VideoDecoder {
@@ -49,6 +52,16 @@ impl VideoDecoder {
         let success = unsafe { jvp_player_open(dummy_id, c_path.as_ptr()) };
         if success == 0 {
             return Err(anyhow!("Failed to open video via AVPlayer"));
+        }
+
+        unsafe {
+            jvp_player_register_render_callback(crate::api::simple::jvp_render_frame);
+            jvp_player_register_update_input_callback(
+                crate::api::simple::jvp_player_update_input_cv_buffer,
+            );
+            jvp_player_register_set_output_callback(
+                crate::api::simple::jvp_player_set_output_texture,
+            );
         }
 
         let mut w: i32 = 0;
@@ -115,6 +128,7 @@ impl VideoDecoder {
 
     pub fn get_scaled_rgba(
         &self,
+        time_sec: f64,
         _target_width: u32,
         _target_height: u32,
     ) -> Result<(Vec<u8>, u32, u32)> {
@@ -122,7 +136,7 @@ impl VideoDecoder {
         let mut h: i32 = 0;
         let mut size: i32 = 0;
         let ptr = unsafe {
-            jvp_player_get_thumbnail(self.texture_id, self.current_pts, &mut w, &mut h, &mut size)
+            jvp_player_get_thumbnail(self.texture_id, time_sec, &mut w, &mut h, &mut size)
         };
         if ptr.is_null() {
             return Err(anyhow!("Failed to generate thumbnail via Swift"));

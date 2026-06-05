@@ -57,6 +57,7 @@ class MainFlutterWindow: NSWindow {
                     result(FlutterError(code: "PTR_FAIL", message: "Failed to get Metal pointer", details: nil))
                 }
             } else if call.method == "updateTexture" {
+                self.jvpTexture?.renderCurrentFrame()
                 self.jvpTexture?.onFrameAvailable()
                 result(nil)
             } else {

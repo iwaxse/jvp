@@ -6,6 +6,7 @@ class JvpTexture: NSObject, FlutterTexture {
     static var instances = [Int64: JvpTexture]()
     
     private var pixelBuffer: CVPixelBuffer?
+    private var playerPixelBuffer: CVPixelBuffer?
     var id: Int64 = -1
     private let registry: FlutterTextureRegistry
     private var textureCache: CVMetalTextureCache?
@@ -31,21 +32,50 @@ class JvpTexture: NSObject, FlutterTexture {
         if let device = metalDevice {
             CVMetalTextureCacheCreate(kCFAllocatorDefault, nil, device, nil, &textureCache)
         }
-        CVDisplayLinkCreateWithActiveCGDisplays(&displayLink)
+        var displayID = CGMainDisplayID()
+        if let window = NSApplication.shared.windows.first(where: { $0.isVisible }) ?? NSApplication.shared.mainWindow {
+            if let screen = window.screen,
+               let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
+                displayID = CGDirectDisplayID(screenNumber.uint32Value)
+            }
+        }
+        CVDisplayLinkCreateWithCGDisplay(displayID, &displayLink)
         if let link = displayLink {
             let callback: CVDisplayLinkOutputCallback = { (displayLink, inNow, inOutputTime, flagsIn, flagsOut, displayLinkContext) -> CVReturn in
                 let mySelf = Unmanaged<JvpTexture>.fromOpaque(displayLinkContext!).takeUnretainedValue()
                 RunLoop.main.perform(inModes: [.common]) {
-                    mySelf.onFrameAvailable()
+                    if mySelf.isPlayingState {
+                        mySelf.processNextFrame()
+                        mySelf.onFrameAvailable()
+                    }
                 }
                 return kCVReturnSuccess
             }
             CVDisplayLinkSetOutputCallback(link, callback, Unmanaged.passUnretained(self).toOpaque())
             CVDisplayLinkStart(link)
         }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidChangeScreen),
+            name: NSWindow.didChangeScreenNotification,
+            object: nil
+        )
+    }
+    
+    @objc private func windowDidChangeScreen(notification: Notification) {
+        guard let window = notification.object as? NSWindow else { return }
+        if window == NSApplication.shared.mainWindow || window.contentViewController is FlutterViewController {
+            guard let link = displayLink else { return }
+            if let screen = window.screen,
+               let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber {
+                let displayID = CGDirectDisplayID(screenNumber.uint32Value)
+                CVDisplayLinkSetCurrentCGDisplay(link, displayID)
+            }
+        }
     }
     
     deinit {
+        NotificationCenter.default.removeObserver(self)
         if let link = displayLink {
             CVDisplayLinkStop(link)
         }
@@ -68,6 +98,7 @@ class JvpTexture: NSObject, FlutterTexture {
         videoOutput = nil
         playerItem = nil
         player = nil
+        playerPixelBuffer = nil
     }
     
     func create(width: Int, height: Int) -> Int64 {
@@ -174,7 +205,11 @@ class JvpTexture: NSObject, FlutterTexture {
     func seekVideo(toSeconds: Double) {
         guard let p = player else { return }
         let time = CMTime(seconds: toSeconds, preferredTimescale: 600)
-        p.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero)
+        p.seek(to: time, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            guard let self = self else { return }
+            self.processNextFrame()
+            self.onFrameAvailable()
+        }
     }
     
     func setVideoVolume(vol: Float) {
@@ -221,8 +256,37 @@ class JvpTexture: NSObject, FlutterTexture {
         return CVPixelBufferGetBytesPerRow(pb)
     }
 
-    func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
+    func renderCurrentFrame() {
+        guard let playerPb = playerPixelBuffer, let destPb = pixelBuffer, let cache = textureCache else { return }
+        updateInputCallback?(Unmanaged.passUnretained(playerPb).toOpaque())
+        let width = CVPixelBufferGetWidth(destPb)
+        let height = CVPixelBufferGetHeight(destPb)
+        var cvTexture: CVMetalTexture?
+        let status = CVMetalTextureCacheCreateTextureFromImage(
+            kCFAllocatorDefault,
+            cache,
+            destPb,
+            nil,
+            .bgra8Unorm,
+            width,
+            height,
+            0,
+            &cvTexture
+        )
+        if status == kCVReturnSuccess, let cvTex = cvTexture, let mtlTex = CVMetalTextureGetTexture(cvTex) {
+            let ptr = Unmanaged.passUnretained(mtlTex).toOpaque()
+            setOutputTextureCallback?(ptr, Int32(videoWidth), Int32(videoHeight))
+            renderCallback?()
+        }
+        CVMetalTextureCacheFlush(cache, 0)
+    }
+
+    func processNextFrame() {
         updateFrameBuffer()
+        renderCurrentFrame()
+    }
+
+    func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
         if let pb = pixelBuffer {
             return Unmanaged.passRetained(pb)
         }
@@ -232,11 +296,9 @@ class JvpTexture: NSObject, FlutterTexture {
     private func updateFrameBuffer() {
         guard let output = videoOutput, let item = playerItem else { return }
         let time = item.currentTime()
-        if output.hasNewPixelBuffer(forItemTime: time) {
-            var presentationItemTime = CMTime.zero
-            if let pb = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: &presentationItemTime) {
-                self.pixelBuffer = pb
-            }
+        var presentationItemTime = CMTime.zero
+        if let pb = output.copyPixelBuffer(forItemTime: time, itemTimeForDisplay: &presentationItemTime) {
+            self.playerPixelBuffer = pb
         }
     }
     
@@ -257,10 +319,19 @@ class JvpTexture: NSObject, FlutterTexture {
     
     func isCompleted() -> Bool {
         guard let item = playerItem else { return false }
-        return CMTimeCompare(item.currentTime(), item.duration) >= 0
+        let current = CMTimeGetSeconds(item.currentTime())
+        let duration = CMTimeGetSeconds(item.duration)
+        if duration.isNaN || duration <= 0.0 { return false }
+        return current >= (duration - 0.1)
     }
     func generateThumbnail(atSeconds: Double) -> (data: Data, width: Int, height: Int)? {
-        guard player != nil, let item = playerItem else { return nil }
+        var activePlayer = player
+        var activeItem = playerItem
+        if activePlayer == nil {
+            activePlayer = fallbackInstance?.player
+            activeItem = fallbackInstance?.playerItem
+        }
+        guard let _ = activePlayer, let item = activeItem else { return nil }
         let asset = item.asset
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -393,4 +464,23 @@ public func jvp_player_copy_pixel_buffer(id: Int64) -> UnsafeMutableRawPointer? 
 @_cdecl("jvp_player_is_completed")
 public func jvp_player_is_completed(id: Int64) -> Int32 {
     return (getInstance(id)?.isCompleted() ?? false) ? 1 : 0
+}
+
+private var renderCallback: (@convention(c) () -> Void)?
+private var updateInputCallback: (@convention(c) (UnsafeMutableRawPointer) -> Void)?
+private var setOutputTextureCallback: (@convention(c) (UnsafeMutableRawPointer, Int32, Int32) -> Void)?
+
+@_cdecl("jvp_player_register_render_callback")
+public func jvp_player_register_render_callback(callback: @escaping @convention(c) () -> Void) {
+    renderCallback = callback
+}
+
+@_cdecl("jvp_player_register_update_input_callback")
+public func jvp_player_register_update_input_callback(callback: @escaping @convention(c) (UnsafeMutableRawPointer) -> Void) {
+    updateInputCallback = callback
+}
+
+@_cdecl("jvp_player_register_set_output_callback")
+public func jvp_player_register_set_output_callback(callback: @escaping @convention(c) (UnsafeMutableRawPointer, Int32, Int32) -> Void) {
+    setOutputTextureCallback = callback
 }
