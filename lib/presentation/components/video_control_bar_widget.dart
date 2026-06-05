@@ -19,6 +19,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/app_event_bus.dart';
+import '../../application/usecase/toggle_play_usecase.dart';
+import '../../application/usecase/toggle_looping_usecase.dart';
+import '../../application/usecase/toggle_mute_usecase.dart';
+import '../../application/usecase/set_volume_usecase.dart';
+import '../../application/usecase/start_scrubbing_usecase.dart';
+import '../../application/usecase/update_scrub_value_usecase.dart';
+import '../../application/usecase/end_scrubbing_usecase.dart';
 import '../video_player_view_model.dart';
 import 'video_control_bar_widget_controller.dart';
 
@@ -106,14 +113,29 @@ class VideoControlBarWidget extends StatelessWidget {
                                 onChangeStart: (val) {
                                   controller.removeThumbnail();
                                   controller.localScrubValue = val;
-                                  eventBus.publish(StartScrubbingAction());
+                                  eventBus.publish(
+                                    StartScrubbingUseCase(
+                                      currentIsPlaying: isPlaying,
+                                    ),
+                                  );
                                 },
                                 onChanged: (val) {
                                   controller.localScrubValue = val;
-                                  eventBus.publish(UpdateScrubValueAction(val));
+                                  eventBus.publish(
+                                    UpdateScrubValueUseCase(
+                                      val,
+                                      isScrubbing: true,
+                                    ),
+                                  );
                                 },
                                 onChangeEnd: (val) {
-                                  eventBus.publish(EndScrubbingAction(val));
+                                  eventBus.publish(
+                                    EndScrubbingUseCase(
+                                      seconds: val,
+                                      wasPlayingBeforeScrub:
+                                          viewModel.wasPlayingBeforeScrub,
+                                    ),
+                                  );
                                   controller.localScrubValue = null;
                                 },
                               ),
@@ -144,7 +166,11 @@ class VideoControlBarWidget extends StatelessWidget {
                                 size: 32,
                               ),
                               onPressed: () {
-                                eventBus.publish(TogglePlayAction());
+                                eventBus.publish(
+                                  TogglePlayUseCase(
+                                    currentIsPlaying: isPlaying,
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(width: 8),
@@ -157,7 +183,11 @@ class VideoControlBarWidget extends StatelessWidget {
                                 size: 24,
                               ),
                               onPressed: () {
-                                eventBus.publish(ToggleLoopingAction());
+                                eventBus.publish(
+                                  ToggleLoopingUseCase(
+                                    currentIsLooping: isLooping,
+                                  ),
+                                );
                               },
                             ),
                             const SizedBox(width: 8),
@@ -172,7 +202,12 @@ class VideoControlBarWidget extends StatelessWidget {
                                 size: 24,
                               ),
                               onPressed: () {
-                                eventBus.publish(ToggleMuteAction());
+                                eventBus.publish(
+                                  ToggleMuteUseCase(
+                                    currentIsMuted: isMuted,
+                                    currentVolume: volume,
+                                  ),
+                                );
                               },
                             ),
                             SizedBox(
@@ -191,7 +226,7 @@ class VideoControlBarWidget extends StatelessWidget {
                                   focusNode: controller.volumeFocusNode,
                                   value: volume,
                                   onChanged: (val) {
-                                    eventBus.publish(SetVolumeAction(val));
+                                    eventBus.publish(SetVolumeUseCase(val));
                                   },
                                 ),
                               ),

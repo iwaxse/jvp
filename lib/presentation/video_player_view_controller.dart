@@ -19,6 +19,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import '../application/app_event_bus.dart';
+import '../application/usecase/toggle_play_usecase.dart';
+import '../application/usecase/step_frame_usecase.dart';
 import 'video_player_view_model.dart';
 
 class VideoPlayerViewController extends ChangeNotifier {
@@ -28,6 +32,7 @@ class VideoPlayerViewController extends ChangeNotifier {
   bool _showTuner = false;
   bool _showControlBar = true;
   bool _isDraggingFile = false;
+  StreamSubscription<ToggleTunerAction>? _tunerSubscription;
 
   Timer? _leftHoldTimer;
   Timer? _leftTapTimer;
@@ -56,12 +61,22 @@ class VideoPlayerViewController extends ChangeNotifier {
 
   VideoPlayerViewController(this.context, this.viewModel) {
     HardwareKeyboard.instance.addHandler(_onKeyEvent);
+    _tunerSubscription = context
+        .read<AppEventBus>()
+        .on<ToggleTunerAction>()
+        .listen((_) {
+          _showTuner = !_showTuner;
+          notifyListeners();
+        });
   }
 
   bool _onKeyEvent(KeyEvent event) {
+    final eventBus = context.read<AppEventBus>();
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.space) {
-        viewModel.togglePlay();
+        eventBus.publish(
+          TogglePlayUseCase(currentIsPlaying: viewModel.isPlaying),
+        );
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.keyD) {
@@ -71,23 +86,47 @@ class VideoPlayerViewController extends ChangeNotifier {
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
         if (_leftTapTimer != null || _isLeftHolding) return true;
-        viewModel.stepFrame(-1);
+        eventBus.publish(
+          StepFrameUseCase(
+            frames: -1,
+            currentIsPlaying: viewModel.isPlaying,
+            currentPosSecs: viewModel.currentPosSecs,
+            fps: viewModel.fps,
+            durationSecs: viewModel.durationSecs,
+          ),
+        );
         _leftTapTimer = Timer(const Duration(milliseconds: 200), () {
           _isLeftHolding = true;
           _leftHoldTimer = Timer.periodic(const Duration(milliseconds: 33), (
             timer,
           ) {
-            viewModel.stepFrame(-1);
+            eventBus.publish(
+              StepFrameUseCase(
+                frames: -1,
+                currentIsPlaying: viewModel.isPlaying,
+                currentPosSecs: viewModel.currentPosSecs,
+                fps: viewModel.fps,
+                durationSecs: viewModel.durationSecs,
+              ),
+            );
           });
         });
         return true;
       }
       if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
         if (_rightTapTimer != null || _isRightHolding) return true;
-        viewModel.stepFrame(1);
+        eventBus.publish(
+          StepFrameUseCase(
+            frames: 1,
+            currentIsPlaying: viewModel.isPlaying,
+            currentPosSecs: viewModel.currentPosSecs,
+            fps: viewModel.fps,
+            durationSecs: viewModel.durationSecs,
+          ),
+        );
         _rightTapTimer = Timer(const Duration(milliseconds: 200), () {
           _isRightHolding = true;
-          viewModel.play();
+          eventBus.publish(TogglePlayUseCase(currentIsPlaying: false));
         });
         return true;
       }
@@ -113,7 +152,7 @@ class VideoPlayerViewController extends ChangeNotifier {
         }
         if (_isRightHolding) {
           _isRightHolding = false;
-          viewModel.pause();
+          eventBus.publish(TogglePlayUseCase(currentIsPlaying: true));
         }
         return true;
       }
@@ -125,6 +164,7 @@ class VideoPlayerViewController extends ChangeNotifier {
   @override
   void dispose() {
     HardwareKeyboard.instance.removeHandler(_onKeyEvent);
+    _tunerSubscription?.cancel();
     _leftHoldTimer?.cancel();
     _leftTapTimer?.cancel();
     _rightTapTimer?.cancel();

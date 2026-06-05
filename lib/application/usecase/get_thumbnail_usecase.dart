@@ -16,18 +16,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import '../models/video_models.dart';
+import '../../../domain/models/video_models.dart';
+import '../../../domain/repository/video_repository.dart';
 
-abstract class VideoRepository {
-  Stream<String> get playerEventStream;
-  Future<VideoInfo> openVideo(String path);
-  Future<Map<String, dynamic>?> initTexture(int width, int height);
-  Future<void> initTextureMode(BigInt ptr, int width, int height);
-  Future<void> updateTexture();
-  Future<void> setPlaying(bool playing);
-  Future<void> seek(double timeSec, {bool accurate});
-  Future<Thumbnail?> getThumbnail(double timeSec);
-  Future<void> setEffectIntensity(String effect, double intensity);
-  Future<void> setVolume(double volume);
-  Future<bool> updateFrame();
+class GetThumbnailUseCase {
+  final VideoRepository _repository;
+
+  GetThumbnailUseCase(this._repository);
+
+  Future<Thumbnail?> getThumbnail(double timeSec) async {
+    return await _repository.getThumbnail(timeSec);
+  }
 }

@@ -87,4 +87,9 @@ class VideoRepositoryImpl implements VideoRepository {
   Future<void> setVolume(double volume) async {
     await rust.setVolume(volume: volume);
   }
+
+  @override
+  Future<bool> updateFrame() async {
+    return await rust.updateFrame();
+  }
 }

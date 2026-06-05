@@ -17,6 +17,7 @@
  */
 
 import 'dart:async';
+import '../domain/repository/video_repository.dart';
 
 abstract class AppEvent {
   final DateTime timestamp = DateTime.now();
@@ -39,32 +40,8 @@ class AppEventBus {
   }
 }
 
-class OpenFileAction extends AppEvent {
-  final String filePath;
-  OpenFileAction(this.filePath);
-}
-
-class TogglePlayAction extends AppEvent {}
-
-class ToggleLoopingAction extends AppEvent {}
-
-class ToggleMuteAction extends AppEvent {}
-
-class SetVolumeAction extends AppEvent {
-  final double volume;
-  SetVolumeAction(this.volume);
-}
-
-class StartScrubbingAction extends AppEvent {}
-
-class UpdateScrubValueAction extends AppEvent {
-  final double seconds;
-  UpdateScrubValueAction(this.seconds);
-}
-
-class EndScrubbingAction extends AppEvent {
-  final double seconds;
-  EndScrubbingAction(this.seconds);
+abstract class AppCommand extends AppEvent {
+  Future<void> execute(VideoRepository repository, AppEventBus eventBus);
 }
 
 class VideoLoadedEvent extends AppEvent {
@@ -104,3 +81,18 @@ class MuteStateEvent extends AppEvent {
 }
 
 class ToggleTunerAction extends AppEvent {}
+
+class ScrubbingStateEvent extends AppEvent {
+  final bool isScrubbing;
+  final bool wasPlayingBeforeScrub;
+  ScrubbingStateEvent({
+    required this.isScrubbing,
+    required this.wasPlayingBeforeScrub,
+  });
+}
+
+class EffectStateEvent extends AppEvent {
+  final String effect;
+  final double intensity;
+  EffectStateEvent({required this.effect, required this.intensity});
+}

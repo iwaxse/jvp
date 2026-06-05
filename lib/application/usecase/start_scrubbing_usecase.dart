@@ -16,18 +16,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import '../models/video_models.dart';
+import '../app_event_bus.dart';
+import '../../../domain/repository/video_repository.dart';
 
-abstract class VideoRepository {
-  Stream<String> get playerEventStream;
-  Future<VideoInfo> openVideo(String path);
-  Future<Map<String, dynamic>?> initTexture(int width, int height);
-  Future<void> initTextureMode(BigInt ptr, int width, int height);
-  Future<void> updateTexture();
-  Future<void> setPlaying(bool playing);
-  Future<void> seek(double timeSec, {bool accurate});
-  Future<Thumbnail?> getThumbnail(double timeSec);
-  Future<void> setEffectIntensity(String effect, double intensity);
-  Future<void> setVolume(double volume);
-  Future<bool> updateFrame();
+class StartScrubbingUseCase extends AppCommand {
+  final bool currentIsPlaying;
+
+  StartScrubbingUseCase({required this.currentIsPlaying});
+
+  @override
+  Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
+    if (currentIsPlaying) {
+      await repository.setPlaying(false);
+      eventBus.publish(PlaybackStateEvent(false));
+    }
+    eventBus.publish(
+      ScrubbingStateEvent(
+        isScrubbing: true,
+        wasPlayingBeforeScrub: currentIsPlaying,
+      ),
+    );
+  }
 }

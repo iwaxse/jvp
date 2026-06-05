@@ -21,13 +21,15 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import '../../application/app_event_bus.dart';
+import '../../application/usecase/get_thumbnail_usecase.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
-import '../../infrastructure/adapter/rust/generated/api/simple.dart' as rust;
 
 class VideoPlayerViewModel extends ChangeNotifier {
   final VideoRepository _repository;
   final AppEventBus _eventBus;
+  final GetThumbnailUseCase _getThumbnailUseCase;
+  StreamSubscription<AppEvent>? _eventBusSubscription;
 
   bool _isLoaded = false;
   bool _isPlaying = false;
@@ -41,10 +43,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   double _volume = 0.0;
   bool _isMuted = true;
 
-  bool _isScrubbing = false;
   bool _wasPlayingBeforeScrub = false;
-  bool _isSeeking = false;
-  double? _pendingSeekSecs;
   StreamSubscription<String>? _eventSubscription;
   double _realTimeFps = 0.0;
   bool get isLoaded => _isLoaded;
@@ -59,26 +58,14 @@ class VideoPlayerViewModel extends ChangeNotifier {
   double get realTimeFps => _realTimeFps;
   double get volume => _volume;
   bool get isMuted => _isMuted;
+  bool get wasPlayingBeforeScrub => _wasPlayingBeforeScrub;
 
-  VideoPlayerViewModel(this._repository, this._eventBus) {
-    _initEventStream();
-    _initActionListeners();
+  VideoPlayerViewModel(this._repository, this._eventBus)
+    : _getThumbnailUseCase = GetThumbnailUseCase(_repository) {
+    _initListeners();
   }
 
-  void _initActionListeners() {
-    _eventBus.on<OpenFileAction>().listen((e) => openFile(e.filePath));
-    _eventBus.on<TogglePlayAction>().listen((e) => togglePlay());
-    _eventBus.on<ToggleLoopingAction>().listen((e) => toggleLooping());
-    _eventBus.on<ToggleMuteAction>().listen((e) => toggleMute());
-    _eventBus.on<SetVolumeAction>().listen((e) => setVolume(e.volume));
-    _eventBus.on<StartScrubbingAction>().listen((e) => startScrubbing());
-    _eventBus.on<UpdateScrubValueAction>().listen(
-      (e) => updateScrubValue(e.seconds),
-    );
-    _eventBus.on<EndScrubbingAction>().listen((e) => endScrubbing(e.seconds));
-  }
-
-  void _initEventStream() {
+  void _initListeners() {
     _eventSubscription = _repository.playerEventStream.listen((eventStr) {
       try {
         final parsed = jsonDecode(eventStr) as Map<String, dynamic>;
@@ -92,7 +79,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
             _height = meta['height'] as int;
             _durationSecs = (meta['duration_secs'] as num).toDouble();
             _fps = (meta['frame_rate'] as num).toDouble();
-            _isLoaded = true;
             _eventBus.publish(
               VideoLoadedEvent(
                 textureId: _textureId ?? 0,
@@ -107,8 +93,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
             final frameData = data as Map<String, dynamic>;
             final pts = (frameData['pts_sec'] as num).toDouble();
             if (pts >= 0.0) {
-              _currentPosSecs = pts;
-              _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
+              _eventBus.publish(PlaybackPositionEvent(pts));
             }
             notifyListeners();
             break;
@@ -120,6 +105,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
           case 'playingState':
             _isPlaying = data as bool;
             _eventBus.publish(PlaybackStateEvent(_isPlaying));
+            _isPlaying ? _startPlaybackTimer() : _playbackTimer?.cancel();
             notifyListeners();
             break;
           case 'completed':
@@ -130,60 +116,69 @@ class VideoPlayerViewModel extends ChangeNotifier {
         debugPrint('Error parsing player event: $e');
       }
     });
+
+    _eventBusSubscription = _eventBus.stream.listen((event) async {
+      if (event is AppCommand) {
+        try {
+          await event.execute(_repository, _eventBus);
+        } catch (e) {
+          debugPrint("Error executing command: $e");
+        }
+      } else if (event is VideoLoadedEvent) {
+        _textureId = event.textureId;
+        _width = event.width;
+        _height = event.height;
+        _durationSecs = event.durationSecs;
+        _isLoaded = true;
+        _currentPosSecs = 0.0;
+        notifyListeners();
+      } else if (event is VideoUnloadedEvent) {
+        _isLoaded = false;
+        _isPlaying = false;
+        _textureId = null;
+        notifyListeners();
+      } else if (event is PlaybackPositionEvent) {
+        _currentPosSecs = event.position;
+        notifyListeners();
+      } else if (event is PlaybackStateEvent) {
+        _isPlaying = event.isPlaying;
+        _isPlaying ? _startPlaybackTimer() : _playbackTimer?.cancel();
+        notifyListeners();
+      } else if (event is LoopingStateEvent) {
+        _isLooping = event.isLooping;
+        notifyListeners();
+      } else if (event is MuteStateEvent) {
+        _isMuted = event.isMuted;
+        _volume = event.volume;
+        notifyListeners();
+      } else if (event is ScrubbingStateEvent) {
+        _wasPlayingBeforeScrub = event.wasPlayingBeforeScrub;
+        notifyListeners();
+      } else if (event is EffectStateEvent) {
+        _effects[event.effect] = event.intensity;
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> _handleCompleted() async {
     if (_isLooping) {
-      await seekTo(0.0);
-      await play();
+      await _repository.seek(0.0, accurate: true);
+      await _repository.updateTexture();
+      await _repository.setPlaying(true);
+      _eventBus.publish(PlaybackPositionEvent(0.0));
+      _eventBus.publish(PlaybackStateEvent(true));
     } else {
       _isPlaying = false;
-      await seekTo(0.0);
+      await _repository.seek(0.0, accurate: true);
+      await _repository.updateTexture();
+      _eventBus.publish(PlaybackPositionEvent(0.0));
       _eventBus.publish(PlaybackStateEvent(false));
     }
     notifyListeners();
   }
 
-  Future<void> openFile(String filePath) async {
-    try {
-      _stopPlayback();
-      final info = await _repository.openVideo(filePath);
-      await _repository.setVolume(_isMuted ? 0.0 : _volume);
-
-      final result = await _repository.initTexture(info.width, info.height);
-      if (result != null) {
-        _textureId = result['textureId'] as int;
-        final ptrVal = result['ptr'] as int;
-        final ptr = BigInt.from(ptrVal);
-        await _repository.initTextureMode(ptr, info.width, info.height);
-      }
-      _isLoaded = true;
-      _currentPosSecs = 0.0;
-      _eventBus.publish(
-        VideoLoadedEvent(
-          textureId: _textureId ?? 0,
-          width: info.width,
-          height: info.height,
-          durationSecs: info.durationSecs,
-        ),
-      );
-      notifyListeners();
-      await play();
-    } catch (e, stack) {
-      debugPrint("ERROR Dart: Exception in openFile: $e\n$stack");
-    }
-  }
-
   Timer? _playbackTimer;
-
-  Future<void> play() async {
-    if (!_isLoaded) return;
-    await _repository.setPlaying(true);
-    _isPlaying = true;
-    _eventBus.publish(PlaybackStateEvent(true));
-    _startPlaybackTimer();
-    notifyListeners();
-  }
 
   void _startPlaybackTimer() {
     _playbackTimer?.cancel();
@@ -195,10 +190,11 @@ class VideoPlayerViewModel extends ChangeNotifier {
         return;
       }
       try {
-        final ok = await rust.updateFrame();
+        final ok = await _repository.updateFrame();
         if (!ok) {
           timer.cancel();
-          await pause();
+          await _repository.setPlaying(false);
+          _eventBus.publish(PlaybackStateEvent(false));
         }
       } catch (e) {
         debugPrint("Error updating frame: $e");
@@ -206,97 +202,10 @@ class VideoPlayerViewModel extends ChangeNotifier {
     });
   }
 
-  Future<void> pause() async {
-    if (!_isLoaded) return;
-    _playbackTimer?.cancel();
-    await _repository.setPlaying(false);
-    _isPlaying = false;
-    _eventBus.publish(PlaybackStateEvent(false));
-    notifyListeners();
-  }
-
-  Future<void> togglePlay() async {
-    if (_isPlaying) {
-      await pause();
-    } else {
-      await play();
-    }
-  }
-
-  void toggleLooping() {
-    _isLooping = !_isLooping;
-    _eventBus.publish(LoopingStateEvent(_isLooping));
-    notifyListeners();
-  }
-
-  void startScrubbing() {
-    if (!_isLoaded) return;
-    _isScrubbing = true;
-    _wasPlayingBeforeScrub = _isPlaying;
-    if (_isPlaying) {
-      pause();
-      _isPlaying = true;
-    }
-  }
-
-  void updateScrubValue(double seconds) {
-    if (!_isLoaded) return;
-    _currentPosSecs = seconds;
-    _pendingSeekSecs = seconds;
-    _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
-    notifyListeners();
-    _triggerSeek();
-  }
-
-  Future<void> _triggerSeek() async {
-    if (_isSeeking || _pendingSeekSecs == null) return;
-    _isSeeking = true;
-    while (_pendingSeekSecs != null) {
-      final target = _pendingSeekSecs!;
-      _pendingSeekSecs = null;
-      await _repository.seek(target, accurate: !_isScrubbing);
-      await _repository.updateTexture();
-      notifyListeners();
-    }
-    _isSeeking = false;
-  }
-
-  Future<void> endScrubbing(double seconds) async {
-    if (!_isLoaded) return;
-    _pendingSeekSecs = null;
-    _isScrubbing = false;
-    await seekTo(seconds);
-    if (_wasPlayingBeforeScrub) {
-      await play();
-    }
-  }
-
-  Future<void> seekTo(double seconds) async {
-    if (!_isLoaded) return;
-    _currentPosSecs = seconds;
-    _eventBus.publish(PlaybackPositionEvent(_currentPosSecs));
-    await _repository.seek(seconds, accurate: true);
-    await _repository.updateTexture();
-    notifyListeners();
-  }
-
-  Future<void> stepFrame(int frames) async {
-    if (!_isLoaded) return;
-    if (_isPlaying) {
-      await pause();
-    }
-    final frameDuration = _fps > 0 ? (1.0 / _fps) : (1.0 / 30.0);
-    final target = (_currentPosSecs + frames * frameDuration).clamp(
-      0.0,
-      _durationSecs,
-    );
-    await seekTo(target);
-  }
-
   Future<Thumbnail?> getThumbnail(double seconds) async {
     if (!_isLoaded) return null;
     try {
-      return await _repository.getThumbnail(seconds);
+      return await _getThumbnailUseCase.getThumbnail(seconds);
     } catch (e) {
       debugPrint('Failed to get thumbnail: $e');
       return null;
@@ -337,42 +246,11 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   double getEffect(String key) => _effects[key] ?? 0.0;
 
-  Future<void> setEffect(String key, double value) async {
-    _effects[key] = value;
-    notifyListeners();
-    await _repository.setEffectIntensity(key, value);
-    await _repository.updateTexture();
-  }
-
-  void setVolume(double val) {
-    _volume = val;
-    _isMuted = _volume <= 0.0;
-    _repository.setVolume(_isMuted ? 0.0 : _volume);
-    _eventBus.publish(MuteStateEvent(isMuted: _isMuted, volume: _volume));
-    notifyListeners();
-  }
-
-  void toggleMute() {
-    _isMuted = !_isMuted;
-    _volume = _isMuted ? 0.0 : 0.5;
-    _repository.setVolume(_isMuted ? 0.0 : _volume);
-    _eventBus.publish(MuteStateEvent(isMuted: _isMuted, volume: _volume));
-    notifyListeners();
-  }
-
-  void _stopPlayback() {
-    _playbackTimer?.cancel();
-    _isLoaded = false;
-    _isPlaying = false;
-    _textureId = null;
-    _eventBus.publish(VideoUnloadedEvent());
-    notifyListeners();
-  }
-
   @override
   void dispose() {
     _playbackTimer?.cancel();
     _eventSubscription?.cancel();
+    _eventBusSubscription?.cancel();
     super.dispose();
   }
 }

@@ -24,6 +24,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'infrastructure/adapter/rust/generated/frb_generated.dart';
 import 'infrastructure/repository/video_repository_impl.dart';
 import 'application/app_event_bus.dart';
+import 'application/usecase/open_file_usecase.dart';
 import 'domain/repository/video_repository.dart';
 import 'presentation/video_player_view_model.dart';
 import 'presentation/video_player_view.dart';
@@ -52,6 +53,7 @@ void main(List<String> args) async {
   }
   final eventBus = AppEventBus();
   final repository = VideoRepositoryImpl();
+
   final viewModel = VideoPlayerViewModel(repository, eventBus);
   runApp(
     MultiProvider(
@@ -65,7 +67,7 @@ void main(List<String> args) async {
   );
   if (args.isNotEmpty) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      eventBus.publish(OpenFileAction(args[0]));
+      eventBus.publish(OpenFileUseCase(args[0], volume: 0.5));
     });
   }
 }

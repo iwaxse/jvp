@@ -18,6 +18,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../application/app_event_bus.dart';
+import '../application/usecase/toggle_play_usecase.dart';
 import 'video_player_view_controller.dart';
 import 'video_player_view_model.dart';
 import 'components/shader_settings_panel_widget.dart';
@@ -30,6 +32,7 @@ class VideoPlayerView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
+    final eventBus = context.read<AppEventBus>();
     return ChangeNotifierProvider<VideoPlayerViewController>(
       create: (context) => VideoPlayerViewController(context, viewModel),
       child: Consumer<VideoPlayerViewController>(
@@ -59,7 +62,11 @@ class VideoPlayerView extends StatelessWidget {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      viewModel.togglePlay();
+                      eventBus.publish(
+                        TogglePlayUseCase(
+                          currentIsPlaying: viewModel.isPlaying,
+                        ),
+                      );
                     },
                     onLongPress: () {
                       controller.showTuner = !controller.showTuner;
