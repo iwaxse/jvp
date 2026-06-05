@@ -28,6 +28,8 @@ pub static DECODER: Lazy<Mutex<Option<VideoDecoder>>> = Lazy::new(|| Mutex::new(
 pub static THUMBNAIL_DECODER: Lazy<Mutex<Option<VideoDecoder>>> = Lazy::new(|| Mutex::new(None));
 pub static IS_PLAYING: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 pub static VOLUME: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0.0f32.to_bits()));
+pub static LAST_SEEK_TIME: Lazy<Mutex<f64>> = Lazy::new(|| Mutex::new(0.0));
+pub static PREFETCH_VERSION: Lazy<AtomicU32> = Lazy::new(|| AtomicU32::new(0));
 
 // レンダリング状態（wgpuリソース）を独立
 pub static RENDER_STATE: Lazy<RwLock<Option<RenderState>>> = Lazy::new(|| {

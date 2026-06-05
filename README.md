@@ -30,15 +30,7 @@ I'm not like, a hardcore player dev or anything, so if you fork this and write s
 
 ## 💅 Prerequisites
 
-Wait! Before you dive in, make sure you have **FFmpeg** installed on your system! jvp needs those sweet libraries to decode your vids. **FFmpeg 7.x or 8.x is highly recommended** for the best experience! ✨
-
-If you're on macOS, just run this:
-
-```bash
-brew install ffmpeg
-```
-
-Without it, the build will like, totally fail. And we don't want that! 🙅‍♀️✨
+Omg! There are literally **NO prerequisites**! 🙅‍♀️✨ We fully leverage macOS's native `AVPlayer` and `AVFoundation` framework under the hood, meaning you don't need to install FFmpeg or any other bulky libraries! Just run the app and start slaying! 💅🔥
 
 ## 🚀 How to Use
 
