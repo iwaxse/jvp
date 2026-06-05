@@ -124,21 +124,25 @@ class VideoPlayerViewModel extends ChangeNotifier {
             notifyListeners();
             break;
           case 'completed':
-            if (_isLooping) {
-              seekTo(0.0);
-              play();
-            } else {
-              _isPlaying = false;
-              seekTo(0.0);
-              _eventBus.publish(PlaybackStateEvent(false));
-            }
-            notifyListeners();
+            _handleCompleted();
             break;
         }
       } catch (e) {
         debugPrint('Error parsing player event: $e');
       }
     });
+  }
+
+  Future<void> _handleCompleted() async {
+    if (_isLooping) {
+      await seekTo(0.0);
+      await play();
+    } else {
+      _isPlaying = false;
+      await seekTo(0.0);
+      _eventBus.publish(PlaybackStateEvent(false));
+    }
+    notifyListeners();
   }
 
   Future<void> openFile(String filePath) async {
