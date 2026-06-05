@@ -64,6 +64,13 @@ class JvpTexture: NSObject, FlutterTexture {
         if let link = displayLink {
             CVDisplayLinkStop(link)
         }
+        if id >= 0 {
+            registry.unregisterTexture(id)
+        }
+        pixelBuffer = nil
+        textureCache = nil
+        sharedCvTexture = nil
+        sharedMtlTexture = nil
     }
     
     func create(width: Int, height: Int) -> Int64 {
@@ -124,8 +131,10 @@ class JvpTexture: NSObject, FlutterTexture {
     func getPixelBufferAddress() -> UInt? {
         guard let pb = pixelBuffer else { return nil }
         CVPixelBufferLockBaseAddress(pb, [])
-        if let addr = CVPixelBufferGetBaseAddress(pb) {
-            return UInt(bitPattern: addr)
+        let addr = CVPixelBufferGetBaseAddress(pb)
+        CVPixelBufferUnlockBaseAddress(pb, [])
+        if let baseAddr = addr {
+            return UInt(bitPattern: baseAddr)
         }
         return nil
     }
