@@ -15,15 +15,15 @@ class JvpTexture: NSObject, FlutterTexture {
     private var sharedMtlTexture: MTLTexture?
     private var displayLink: CVDisplayLink?
     
-    private var player: AVPlayer?
-    private var playerItem: AVPlayerItem?
-    private var videoOutput: AVPlayerItemVideoOutput?
+    fileprivate var player: AVPlayer?
+    fileprivate var playerItem: AVPlayerItem?
+    fileprivate var videoOutput: AVPlayerItemVideoOutput?
     
-    private var videoWidth: Int = 0
-    private var videoHeight: Int = 0
-    private var videoDuration: Double = 0.0
-    private var videoFps: Double = 30.0
-    private var isPlayingState: Bool = false
+    fileprivate var videoWidth: Int = 0
+    fileprivate var videoHeight: Int = 0
+    fileprivate var videoDuration: Double = 0.0
+    fileprivate var videoFps: Double = 30.0
+    fileprivate var isPlayingState: Bool = false
     
     init(registry: FlutterTextureRegistry) {
         self.registry = registry
@@ -128,6 +128,21 @@ class JvpTexture: NSObject, FlutterTexture {
         return -1
     }
     
+    func absorbFallbackIfNeeded() {
+        guard let fb = fallbackInstance, fb.player != nil else { return }
+        self.player = fb.player
+        self.playerItem = fb.playerItem
+        self.videoOutput = fb.videoOutput
+        self.videoWidth = fb.videoWidth
+        self.videoHeight = fb.videoHeight
+        self.videoDuration = fb.videoDuration
+        self.videoFps = fb.videoFps
+        fb.player = nil
+        fb.playerItem = nil
+        fb.videoOutput = nil
+        fallbackInstance = nil
+    }
+
     func openVideo(path: String) -> Bool {
         cleanupPlayer()
         

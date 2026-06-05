@@ -48,6 +48,7 @@ class MainFlutterWindow: NSWindow {
                         return
                     }
                     let id = texture.create(width: width, height: height)
+                    texture.absorbFallbackIfNeeded()
                     if let ptr = texture.getMTLTexturePointer() {
                         let address = UInt(bitPattern: ptr)
                         let bytesPerRow = texture.getPixelBufferBytesPerRow()

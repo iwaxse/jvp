@@ -53,9 +53,6 @@ void main(List<String> args) async {
   final eventBus = AppEventBus();
   final repository = VideoRepositoryImpl();
   final viewModel = VideoPlayerViewModel(repository, eventBus);
-  if (args.isNotEmpty) {
-    eventBus.publish(OpenFileAction(args[0]));
-  }
   runApp(
     MultiProvider(
       providers: [
@@ -66,6 +63,11 @@ void main(List<String> args) async {
       child: const MyApp(),
     ),
   );
+  if (args.isNotEmpty) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      eventBus.publish(OpenFileAction(args[0]));
+    });
+  }
 }
 
 class MyApp extends StatelessWidget {
