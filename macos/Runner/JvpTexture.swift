@@ -45,6 +45,7 @@ class JvpTexture: NSObject, FlutterTexture {
     private var pendingFrame: Bool = false
     private var isSeeking = false
     private var pendingSeekTime: Double?
+    private var hasPostedCompleted = false
     
     init(registry: FlutterTextureRegistry) {
         self.registry = registry
@@ -234,18 +235,23 @@ class JvpTexture: NSObject, FlutterTexture {
             self,
             selector: #selector(playerItemDidPlayToEndTime),
             name: .AVPlayerItemDidPlayToEndTime,
-            object: self.playerItem
+            object: nil
         )
         
         return true
     }
     
     @objc private func playerItemDidPlayToEndTime(notification: Notification) {
+        guard let item = notification.object as? AVPlayerItem, item == self.playerItem else { return }
         NotificationCenter.default.post(name: NSNotification.Name("JvpPlayerCompleted"), object: self)
     }
     
     func playVideo() {
         isPlayingState = true
+        hasPostedCompleted = false
+        if isCompleted() {
+            player?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+        }
         player?.play()
     }
     
@@ -255,6 +261,7 @@ class JvpTexture: NSObject, FlutterTexture {
     }
     
     func seekVideo(toSeconds: Double, accurate: Bool) {
+        hasPostedCompleted = false
         guard let p = player else { return }
         if isSeeking {
             pendingSeekTime = toSeconds
@@ -346,6 +353,19 @@ class JvpTexture: NSObject, FlutterTexture {
     func processNextFrame() {
         updateFrameBuffer()
         renderCurrentFrame()
+        let pts = getCurrentPts()
+        NotificationCenter.default.post(
+            name: NSNotification.Name("JvpPlayerPtsChanged"),
+            object: self,
+            userInfo: ["pts": pts]
+        )
+        if isCompleted() && !hasPostedCompleted {
+            hasPostedCompleted = true
+            NotificationCenter.default.post(
+                name: NSNotification.Name("JvpPlayerCompleted"),
+                object: self
+            )
+        }
     }
 
     func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
@@ -546,3 +566,4 @@ public func jvp_player_register_update_input_callback(callback: @escaping @conve
 public func jvp_player_register_set_output_callback(callback: @escaping @convention(c) (UnsafeMutableRawPointer, Int32, Int32) -> Void) {
     setOutputTextureCallback = callback
 }
+

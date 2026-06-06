@@ -217,68 +217,74 @@ class _TimeSlider extends StatelessWidget {
       (vm) => vm.currentPosSecs,
     );
 
-    final max = durationSecs > 0 ? durationSecs : 1.0;
-    final displayValue = (controller.localScrubValue ?? currentPosSecs).clamp(
-      0.0,
-      max,
-    );
+    return Consumer<VideoControlBarWidgetController>(
+      builder: (context, ctrl, _) {
+        final max = durationSecs > 0 ? durationSecs : 1.0;
+        final displayValue = (ctrl.localScrubValue ?? currentPosSecs).clamp(
+          0.0,
+          max,
+        );
 
-    return Row(
-      children: [
-        Text(
-          _formatDuration(displayValue),
-          style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
-        ),
-        Expanded(
-          child: MouseRegion(
-            onHover: (event) => controller.handleHover(event, max),
-            onExit: (_) => controller.removeThumbnail(),
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 4,
-                activeTrackColor: const Color(0xFFE5E5E5),
-                inactiveTrackColor: const Color(0xFF333333),
-                thumbColor: Colors.white,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              ),
-              child: Slider(
-                key: controller.sliderKey,
-                focusNode: controller.sliderFocusNode,
-                value: displayValue,
-                max: max,
-                onChangeStart: (val) {
-                  controller.removeThumbnail();
-                  controller.localScrubValue = val;
-                  eventBus.publish(
-                    StartScrubbingUseCase(currentIsPlaying: isPlaying),
-                  );
-                },
-                onChanged: (val) {
-                  controller.localScrubValue = val;
-                  eventBus.publish(
-                    UpdateScrubValueUseCase(val, isScrubbing: true),
-                  );
-                },
-                onChangeEnd: (val) {
-                  eventBus.publish(
-                    EndScrubbingUseCase(
-                      seconds: val,
-                      wasPlayingBeforeScrub: context
-                          .read<VideoPlayerViewModel>()
-                          .wasPlayingBeforeScrub,
+        return Row(
+          children: [
+            Text(
+              _formatDuration(displayValue),
+              style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+            ),
+            Expanded(
+              child: MouseRegion(
+                onHover: (event) => ctrl.handleHover(event, max),
+                onExit: (_) => ctrl.removeThumbnail(),
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 4,
+                    activeTrackColor: const Color(0xFFE5E5E5),
+                    inactiveTrackColor: const Color(0xFF333333),
+                    thumbColor: Colors.white,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 6,
                     ),
-                  );
-                  controller.localScrubValue = null;
-                },
+                  ),
+                  child: Slider(
+                    key: ctrl.sliderKey,
+                    focusNode: ctrl.sliderFocusNode,
+                    value: displayValue,
+                    max: max,
+                    onChangeStart: (val) {
+                      ctrl.removeThumbnail();
+                      ctrl.localScrubValue = val;
+                      eventBus.publish(
+                        StartScrubbingUseCase(currentIsPlaying: isPlaying),
+                      );
+                    },
+                    onChanged: (val) {
+                      ctrl.localScrubValue = val;
+                      eventBus.publish(
+                        UpdateScrubValueUseCase(val, isScrubbing: true),
+                      );
+                    },
+                    onChangeEnd: (val) {
+                      eventBus.publish(
+                        EndScrubbingUseCase(
+                          seconds: val,
+                          wasPlayingBeforeScrub: context
+                              .read<VideoPlayerViewModel>()
+                              .wasPlayingBeforeScrub,
+                        ),
+                      );
+                      ctrl.localScrubValue = null;
+                    },
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        Text(
-          _formatDuration(durationSecs),
-          style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
-        ),
-      ],
+            Text(
+              _formatDuration(durationSecs),
+              style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+            ),
+          ],
+        );
+      },
     );
   }
 

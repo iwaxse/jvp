@@ -105,7 +105,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
           case 'playingState':
             _isPlaying = data as bool;
             _eventBus.publish(PlaybackStateEvent(_isPlaying));
-            _isPlaying ? _startPlaybackTimer() : _playbackTimer?.cancel();
             notifyListeners();
             break;
           case 'completed':
@@ -142,7 +141,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
         notifyListeners();
       } else if (event is PlaybackStateEvent) {
         _isPlaying = event.isPlaying;
-        _isPlaying ? _startPlaybackTimer() : _playbackTimer?.cancel();
         notifyListeners();
       } else if (event is LoopingStateEvent) {
         _isLooping = event.isLooping;
@@ -170,36 +168,13 @@ class VideoPlayerViewModel extends ChangeNotifier {
       _eventBus.publish(PlaybackStateEvent(true));
     } else {
       _isPlaying = false;
+      await _repository.setPlaying(false);
       await _repository.seek(0.0, accurate: true);
       await _repository.updateTexture();
       _eventBus.publish(PlaybackPositionEvent(0.0));
       _eventBus.publish(PlaybackStateEvent(false));
     }
     notifyListeners();
-  }
-
-  Timer? _playbackTimer;
-
-  void _startPlaybackTimer() {
-    _playbackTimer?.cancel();
-    _playbackTimer = Timer.periodic(const Duration(milliseconds: 33), (
-      timer,
-    ) async {
-      if (!_isPlaying || !_isLoaded) {
-        timer.cancel();
-        return;
-      }
-      try {
-        final ok = await _repository.updateFrame();
-        if (!ok) {
-          timer.cancel();
-          await _repository.setPlaying(false);
-          _eventBus.publish(PlaybackStateEvent(false));
-        }
-      } catch (e) {
-        debugPrint("Error updating frame: $e");
-      }
-    });
   }
 
   Future<Thumbnail?> getThumbnail(double seconds) async {
@@ -248,7 +223,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _playbackTimer?.cancel();
     _eventSubscription?.cancel();
     _eventBusSubscription?.cancel();
     super.dispose();
