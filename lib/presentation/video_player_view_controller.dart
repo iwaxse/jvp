@@ -37,8 +37,11 @@ class VideoPlayerViewController extends ChangeNotifier {
   Timer? _leftHoldTimer;
   Timer? _leftTapTimer;
   Timer? _rightTapTimer;
+  Timer? _rightHoldTimer;
   bool _isRightHolding = false;
   bool _isLeftHolding = false;
+  double? _scrubTargetPos;
+  bool _wasPlayingBeforeHold = false;
 
   bool get showTuner => _showTuner;
   bool get showControlBar => _showControlBar;
@@ -72,93 +75,169 @@ class VideoPlayerViewController extends ChangeNotifier {
 
   bool _onKeyEvent(KeyEvent event) {
     final eventBus = context.read<AppEventBus>();
+    final key = event.logicalKey;
+
+    final handledKeys = {
+      LogicalKeyboardKey.shiftLeft,
+      LogicalKeyboardKey.shiftRight,
+      LogicalKeyboardKey.space,
+      LogicalKeyboardKey.keyD,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.arrowRight,
+    };
+
+    if (!handledKeys.contains(key)) return false;
+
     if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.space) {
+      if (key == LogicalKeyboardKey.space) {
         eventBus.publish(
           TogglePlayUseCase(currentIsPlaying: viewModel.isPlaying),
         );
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.keyD) {
+      } else if (key == LogicalKeyboardKey.keyD) {
         _showControlBar = !_showControlBar;
         notifyListeners();
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (_leftTapTimer != null || _isLeftHolding) return true;
-        eventBus.publish(
-          StepFrameUseCase(
-            frames: -1,
-            currentIsPlaying: viewModel.isPlaying,
-            currentPosSecs: viewModel.currentPosSecs,
-            fps: viewModel.fps,
-            durationSecs: viewModel.durationSecs,
-          ),
-        );
-        _leftTapTimer = Timer(const Duration(milliseconds: 200), () {
-          _isLeftHolding = true;
-          _leftHoldTimer = Timer.periodic(const Duration(milliseconds: 33), (
-            timer,
-          ) {
-            eventBus.publish(
-              StepFrameUseCase(
-                frames: -1,
-                currentIsPlaying: viewModel.isPlaying,
-                currentPosSecs: viewModel.currentPosSecs,
-                fps: viewModel.fps,
-                durationSecs: viewModel.durationSecs,
-              ),
-            );
+      } else if (key == LogicalKeyboardKey.arrowLeft) {
+        if (_leftTapTimer == null && !_isLeftHolding) {
+          _scrubTargetPos = viewModel.currentPosSecs;
+          eventBus.publish(
+            StepFrameUseCase(
+              frames: -1,
+              currentIsPlaying: viewModel.isPlaying,
+              currentPosSecs: _scrubTargetPos!,
+              fps: viewModel.fps,
+              durationSecs: viewModel.durationSecs,
+            ),
+          );
+          _scrubTargetPos = (_scrubTargetPos! - (1.0 / viewModel.fps)).clamp(
+            0.0,
+            viewModel.durationSecs,
+          );
+          _leftTapTimer = Timer(const Duration(milliseconds: 200), () {
+            _isLeftHolding = true;
+            _leftHoldTimer = Timer.periodic(const Duration(milliseconds: 16), (
+              t,
+            ) {
+              if (_scrubTargetPos == 0.0) return;
+              final keys = HardwareKeyboard.instance.logicalKeysPressed;
+              final shift =
+                  keys.contains(LogicalKeyboardKey.shiftLeft) ||
+                  keys.contains(LogicalKeyboardKey.shiftRight);
+              if (!shift && t.tick % 2 != 0) return;
+              eventBus.publish(
+                StepFrameUseCase(
+                  frames: 0,
+                  currentIsPlaying: viewModel.isPlaying,
+                  currentPosSecs: _scrubTargetPos!,
+                  fps: viewModel.fps,
+                  durationSecs: viewModel.durationSecs,
+                  accurate: !shift,
+                ),
+              );
+              _scrubTargetPos = (_scrubTargetPos! - (1.0 / viewModel.fps))
+                  .clamp(0.0, viewModel.durationSecs);
+            });
           });
-        });
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_rightTapTimer != null || _isRightHolding) return true;
-        eventBus.publish(
-          StepFrameUseCase(
-            frames: 1,
-            currentIsPlaying: viewModel.isPlaying,
-            currentPosSecs: viewModel.currentPosSecs,
-            fps: viewModel.fps,
-            durationSecs: viewModel.durationSecs,
-          ),
-        );
-        _rightTapTimer = Timer(const Duration(milliseconds: 200), () {
-          _isRightHolding = true;
-          eventBus.publish(TogglePlayUseCase(currentIsPlaying: false));
-        });
-        return true;
-      }
-    }
-
-    if (event is KeyUpEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-        if (_leftTapTimer != null) {
-          _leftTapTimer!.cancel();
-          _leftTapTimer = null;
         }
+      } else if (key == LogicalKeyboardKey.arrowRight) {
+        if (_rightTapTimer == null && !_isRightHolding) {
+          _wasPlayingBeforeHold = viewModel.isPlaying;
+          _scrubTargetPos = viewModel.currentPosSecs;
+          eventBus.publish(
+            StepFrameUseCase(
+              frames: 1,
+              currentIsPlaying: viewModel.isPlaying,
+              currentPosSecs: _scrubTargetPos!,
+              fps: viewModel.fps,
+              durationSecs: viewModel.durationSecs,
+            ),
+          );
+          _scrubTargetPos = (_scrubTargetPos! + (1.0 / viewModel.fps)).clamp(
+            0.0,
+            viewModel.durationSecs,
+          );
+          _rightTapTimer = Timer(const Duration(milliseconds: 200), () {
+            _isRightHolding = true;
+            final keys = HardwareKeyboard.instance.logicalKeysPressed;
+            final shift =
+                keys.contains(LogicalKeyboardKey.shiftLeft) ||
+                keys.contains(LogicalKeyboardKey.shiftRight);
+            if (shift) {
+              _rightHoldTimer = Timer.periodic(
+                const Duration(milliseconds: 16),
+                (t) {
+                  if (_scrubTargetPos == viewModel.durationSecs) return;
+                  final k = HardwareKeyboard.instance.logicalKeysPressed;
+                  final s =
+                      k.contains(LogicalKeyboardKey.shiftLeft) ||
+                      k.contains(LogicalKeyboardKey.shiftRight);
+                  if (!s && t.tick % 2 != 0) return;
+                  eventBus.publish(
+                    StepFrameUseCase(
+                      frames: 0,
+                      currentIsPlaying: viewModel.isPlaying,
+                      currentPosSecs: _scrubTargetPos!,
+                      fps: viewModel.fps,
+                      durationSecs: viewModel.durationSecs,
+                      accurate: !s,
+                    ),
+                  );
+                  _scrubTargetPos = (_scrubTargetPos! + (1.0 / viewModel.fps))
+                      .clamp(0.0, viewModel.durationSecs);
+                },
+              );
+            } else if (!_wasPlayingBeforeHold) {
+              eventBus.publish(TogglePlayUseCase(currentIsPlaying: false));
+            }
+          });
+        }
+      }
+    } else if (event is KeyUpEvent) {
+      if (key == LogicalKeyboardKey.arrowLeft) {
+        _leftTapTimer?.cancel();
+        _leftTapTimer = null;
         if (_isLeftHolding) {
           _isLeftHolding = false;
           _leftHoldTimer?.cancel();
           _leftHoldTimer = null;
+          eventBus.publish(
+            StepFrameUseCase(
+              frames: 0,
+              currentIsPlaying: viewModel.isPlaying,
+              currentPosSecs: viewModel.currentPosSecs,
+              fps: viewModel.fps,
+              durationSecs: viewModel.durationSecs,
+              accurate: true,
+            ),
+          );
         }
-        return true;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-        if (_rightTapTimer != null) {
-          _rightTapTimer!.cancel();
-          _rightTapTimer = null;
-        }
+        _scrubTargetPos = null;
+      } else if (key == LogicalKeyboardKey.arrowRight) {
+        _rightTapTimer?.cancel();
+        _rightTapTimer = null;
         if (_isRightHolding) {
           _isRightHolding = false;
-          eventBus.publish(TogglePlayUseCase(currentIsPlaying: true));
+          if (_rightHoldTimer != null) {
+            _rightHoldTimer!.cancel();
+            _rightHoldTimer = null;
+            eventBus.publish(
+              StepFrameUseCase(
+                frames: 0,
+                currentIsPlaying: viewModel.isPlaying,
+                currentPosSecs: viewModel.currentPosSecs,
+                fps: viewModel.fps,
+                durationSecs: viewModel.durationSecs,
+                accurate: true,
+              ),
+            );
+          } else if (!_wasPlayingBeforeHold) {
+            eventBus.publish(TogglePlayUseCase(currentIsPlaying: true));
+          }
         }
-        return true;
+        _scrubTargetPos = null;
       }
     }
 
-    return false;
+    return true;
   }
 
   @override
@@ -168,6 +247,7 @@ class VideoPlayerViewController extends ChangeNotifier {
     _leftHoldTimer?.cancel();
     _leftTapTimer?.cancel();
     _rightTapTimer?.cancel();
+    _rightHoldTimer?.cancel();
     super.dispose();
   }
 }

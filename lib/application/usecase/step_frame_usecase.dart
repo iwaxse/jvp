@@ -26,6 +26,7 @@ class StepFrameUseCase extends AppCommand {
   final double currentPosSecs;
   final double fps;
   final double durationSecs;
+  final bool accurate;
 
   StepFrameUseCase({
     required this.frames,
@@ -33,6 +34,7 @@ class StepFrameUseCase extends AppCommand {
     required this.currentPosSecs,
     required this.fps,
     required this.durationSecs,
+    this.accurate = true,
   });
 
   @override
@@ -49,7 +51,7 @@ class StepFrameUseCase extends AppCommand {
     );
     final target = info.calculateTargetPosition(currentPosSecs, frames);
     eventBus.publish(PlaybackPositionEvent(target));
-    await repository.seek(target, accurate: true);
+    await repository.seek(target, accurate: accurate);
     await repository.updateTexture();
   }
 }
