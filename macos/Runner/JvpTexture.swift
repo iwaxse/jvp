@@ -1,3 +1,21 @@
+/*
+ * jvp (Jamy-chan Video Player)
+ * Copyright (C) 2026 iwaxse
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import Cocoa
 import FlutterMacOS
 import AVFoundation
@@ -147,8 +165,23 @@ class JvpTexture: NSObject, FlutterTexture {
         fallbackInstance = nil
     }
 
+    private func clearPixelBuffer() {
+        guard let pb = pixelBuffer else { return }
+        CVPixelBufferLockBaseAddress(pb, [])
+        let height = CVPixelBufferGetHeight(pb)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pb)
+        if let baseAddress = CVPixelBufferGetBaseAddress(pb) {
+            memset(baseAddress, 0, height * bytesPerRow)
+        }
+        CVPixelBufferUnlockBaseAddress(pb, [])
+        playerPixelBuffer = nil
+    }
+
     func openVideo(path: String) -> Bool {
         cleanupPlayer()
+        clearPixelBuffer()
+        renderCurrentFrame()
+        onFrameAvailable()
         
         let url: URL
         if path.hasPrefix("http://") || path.hasPrefix("https://") {

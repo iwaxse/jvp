@@ -45,8 +45,10 @@ class OpenFileUseCase extends AppCommand {
           durationSecs: info.durationSecs,
         ),
       );
-      await repository.setPlaying(true);
-      eventBus.publish(PlaybackStateEvent(true));
+      await repository.setPlaying(false);
+      eventBus.publish(PlaybackStateEvent(false));
+      await repository.seek(0.0, accurate: true);
+      await repository.updateTexture();
     }
   }
 }

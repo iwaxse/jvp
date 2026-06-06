@@ -67,7 +67,7 @@ void main(List<String> args) async {
   );
   if (args.isNotEmpty) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      eventBus.publish(OpenFileUseCase(args[0], volume: 0.5));
+      eventBus.publish(OpenFileUseCase(args[0], volume: 0.0));
     });
   }
 }

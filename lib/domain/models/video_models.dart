@@ -30,6 +30,12 @@ class VideoInfo {
     required this.durationSecs,
     required this.frameRate,
   });
+
+  double get frameDuration => frameRate > 0 ? (1.0 / frameRate) : (1.0 / 30.0);
+
+  double calculateTargetPosition(double currentPosSecs, int frames) {
+    return (currentPosSecs + frames * frameDuration).clamp(0.0, durationSecs);
+  }
 }
 
 class Thumbnail {

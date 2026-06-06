@@ -17,6 +17,7 @@
  */
 
 import '../app_event_bus.dart';
+import '../../../domain/models/video_models.dart';
 import '../../../domain/repository/video_repository.dart';
 
 class StepFrameUseCase extends AppCommand {
@@ -40,11 +41,13 @@ class StepFrameUseCase extends AppCommand {
       await repository.setPlaying(false);
       eventBus.publish(PlaybackStateEvent(false));
     }
-    final frameDuration = fps > 0 ? (1.0 / fps) : (1.0 / 30.0);
-    final target = (currentPosSecs + frames * frameDuration).clamp(
-      0.0,
-      durationSecs,
+    final info = VideoInfo(
+      width: 0,
+      height: 0,
+      durationSecs: durationSecs,
+      frameRate: fps,
     );
+    final target = info.calculateTargetPosition(currentPosSecs, frames);
     eventBus.publish(PlaybackPositionEvent(target));
     await repository.seek(target, accurate: true);
     await repository.updateTexture();
