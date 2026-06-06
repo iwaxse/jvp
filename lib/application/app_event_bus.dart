@@ -49,11 +49,13 @@ class VideoLoadedEvent extends AppEvent {
   final int width;
   final int height;
   final double durationSecs;
+  final String sourcePath;
   VideoLoadedEvent({
     required this.textureId,
     required this.width,
     required this.height,
     required this.durationSecs,
+    required this.sourcePath,
   });
 }
 

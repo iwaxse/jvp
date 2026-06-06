@@ -20,7 +20,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../application/app_event_bus.dart';
+import '../../application/usecase/open_file_usecase.dart';
 import '../../application/usecase/get_thumbnail_usecase.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
@@ -46,6 +48,15 @@ class VideoPlayerViewModel extends ChangeNotifier {
   bool _wasPlayingBeforeScrub = false;
   StreamSubscription<String>? _eventSubscription;
   double _realTimeFps = 0.0;
+  bool _isMediaLibraryLoading = false;
+  String? _mediaLibraryError;
+  List<String> _mediaSearchRoots = [];
+  List<MediaFileEntry> _mediaFiles = [];
+  List<MediaFileEntry> _playlist = [];
+  String? _currentMediaPath;
+  SharedPreferences? _prefs;
+
+  static const _playlistPrefsKey = 'playlist_entries';
   bool get isLoaded => _isLoaded;
   bool get isPlaying => _isPlaying;
   bool get isLooping => _isLooping;
@@ -59,6 +70,18 @@ class VideoPlayerViewModel extends ChangeNotifier {
   double get volume => _volume;
   bool get isMuted => _isMuted;
   bool get wasPlayingBeforeScrub => _wasPlayingBeforeScrub;
+  bool get isMediaLibraryLoading => _isMediaLibraryLoading;
+  String? get mediaLibraryError => _mediaLibraryError;
+  List<String> get mediaSearchRoots => List.unmodifiable(_mediaSearchRoots);
+  List<MediaFileEntry> get mediaFiles => List.unmodifiable(_mediaFiles);
+  List<MediaFileEntry> get playlist => List.unmodifiable(_playlist);
+  String? get currentMediaPath => _currentMediaPath;
+  int? get currentPlaylistIndex {
+    final path = _currentMediaPath;
+    if (path == null) return null;
+    final index = _playlist.indexWhere((item) => item.path == path);
+    return index >= 0 ? index : null;
+  }
 
   final Map<int, ui.Image> _thumbnailCache = {};
   final List<int> _thumbnailCacheKeys = [];
@@ -75,6 +98,13 @@ class VideoPlayerViewModel extends ChangeNotifier {
   VideoPlayerViewModel(this._repository, this._eventBus)
     : _getThumbnailUseCase = GetThumbnailUseCase(_repository) {
     _initListeners();
+    Future.microtask(_bootstrap);
+  }
+
+  Future<void> _bootstrap() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadPlaylist();
+    await _loadMediaLibrary();
   }
 
   void _initListeners() {
@@ -91,14 +121,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
             _height = meta['height'] as int;
             _durationSecs = (meta['duration_secs'] as num).toDouble();
             _fps = (meta['frame_rate'] as num).toDouble();
-            _eventBus.publish(
-              VideoLoadedEvent(
-                textureId: _textureId ?? 0,
-                width: _width,
-                height: _height,
-                durationSecs: _durationSecs,
-              ),
-            );
             notifyListeners();
             break;
           case 'frame':
@@ -140,6 +162,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
         _width = event.width;
         _height = event.height;
         _durationSecs = event.durationSecs;
+        _currentMediaPath = event.sourcePath;
         _isLoaded = true;
         _currentPosSecs = 0.0;
         _clearThumbnailCache();
@@ -180,15 +203,167 @@ class VideoPlayerViewModel extends ChangeNotifier {
       await _repository.setPlaying(true);
       _eventBus.publish(PlaybackPositionEvent(0.0));
       _eventBus.publish(PlaybackStateEvent(true));
-    } else {
-      _isPlaying = false;
-      await _repository.setPlaying(false);
-      await _repository.seek(0.0, accurate: true);
-      await _repository.updateTexture();
-      _eventBus.publish(PlaybackPositionEvent(0.0));
-      _eventBus.publish(PlaybackStateEvent(false));
+      notifyListeners();
+      return;
+    }
+
+    final nextPlaylistEntry = _nextPlaylistEntry();
+    if (nextPlaylistEntry != null) {
+      await _playMediaEntry(nextPlaylistEntry, autoplay: true);
+      notifyListeners();
+      return;
+    }
+
+    _isPlaying = false;
+    await _repository.setPlaying(false);
+    await _repository.seek(0.0, accurate: true);
+    await _repository.updateTexture();
+    _eventBus.publish(PlaybackPositionEvent(0.0));
+    _eventBus.publish(PlaybackStateEvent(false));
+    notifyListeners();
+  }
+
+  MediaFileEntry? _nextPlaylistEntry() {
+    final currentPath = _currentMediaPath;
+    if (currentPath == null) return null;
+    final currentIndex = _playlist.indexWhere(
+      (item) => item.path == currentPath,
+    );
+    if (currentIndex < 0) return null;
+    if (currentIndex + 1 >= _playlist.length) return null;
+    return _playlist[currentIndex + 1];
+  }
+
+  Future<void> _playMediaEntry(
+    MediaFileEntry entry, {
+    required bool autoplay,
+  }) async {
+    _eventBus.publish(
+      OpenFileUseCase(entry.path, volume: volume, autoplay: autoplay),
+    );
+  }
+
+  Future<void> addToPlaylist(MediaFileEntry entry) async {
+    if (_playlist.any((item) => item.path == entry.path)) return;
+    _playlist = [..._playlist, entry];
+    notifyListeners();
+    await _savePlaylist();
+  }
+
+  Future<void> removeFromPlaylist(String path) async {
+    _playlist = _playlist.where((item) => item.path != path).toList();
+    if (_currentMediaPath == path) {
+      _currentMediaPath = null;
     }
     notifyListeners();
+    await _savePlaylist();
+  }
+
+  Future<void> clearPlaylist() async {
+    _playlist = [];
+    notifyListeners();
+    await _savePlaylist();
+  }
+
+  Future<void> playPlaylistEntry(MediaFileEntry entry) async {
+    if (!_playlist.any((item) => item.path == entry.path)) {
+      _playlist = [..._playlist, entry];
+      notifyListeners();
+      await _savePlaylist();
+    }
+    await _playMediaEntry(entry, autoplay: true);
+  }
+
+  Future<void> playPlaylistIndex(int index) async {
+    if (index < 0 || index >= _playlist.length) return;
+    await _playMediaEntry(_playlist[index], autoplay: true);
+  }
+
+  Future<void> openMediaFile(String path) async {
+    _eventBus.publish(OpenFileUseCase(path, volume: volume));
+  }
+
+  Future<void> _loadPlaylist() async {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final raw = prefs.getString(_playlistPrefsKey);
+    if (raw == null || raw.isEmpty) {
+      _playlist = [];
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return;
+      _playlist = decoded
+          .whereType<Map>()
+          .map(
+            (item) => MediaFileEntry(
+              path: item['path']?.toString() ?? '',
+              displayName: item['displayName']?.toString() ?? '',
+              directoryPath: item['directoryPath']?.toString() ?? '',
+            ),
+          )
+          .where((item) => item.path.isNotEmpty)
+          .toList();
+    } catch (e) {
+      debugPrint('Failed to load playlist: $e');
+      _playlist = [];
+    }
+    notifyListeners();
+  }
+
+  Future<void> _savePlaylist() async {
+    final prefs = _prefs;
+    if (prefs == null) return;
+    final payload = jsonEncode(
+      _playlist
+          .map(
+            (item) => {
+              'path': item.path,
+              'displayName': item.displayName,
+              'directoryPath': item.directoryPath,
+            },
+          )
+          .toList(),
+    );
+    await prefs.setString(_playlistPrefsKey, payload);
+  }
+
+  Future<void> _loadMediaLibrary() async {
+    _isMediaLibraryLoading = true;
+    _mediaLibraryError = null;
+    notifyListeners();
+    try {
+      _mediaSearchRoots = await _repository.getMediaSearchRoots();
+      _mediaFiles = await _repository.scanMediaFiles();
+    } catch (e) {
+      _mediaLibraryError = e.toString();
+      _mediaFiles = [];
+    } finally {
+      _isMediaLibraryLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> refreshMediaLibrary() async {
+    await _loadMediaLibrary();
+  }
+
+  Future<void> updateMediaSearchRoots(List<String> roots) async {
+    _isMediaLibraryLoading = true;
+    _mediaLibraryError = null;
+    notifyListeners();
+    try {
+      await _repository.setMediaSearchRoots(roots);
+      _mediaSearchRoots = await _repository.getMediaSearchRoots();
+      _mediaFiles = await _repository.scanMediaFiles();
+    } catch (e) {
+      _mediaLibraryError = e.toString();
+    } finally {
+      _isMediaLibraryLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<Thumbnail?> getThumbnail(double seconds) async {

@@ -6,6 +6,31 @@
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+class MediaFileEntry {
+  final String path;
+  final String displayName;
+  final String directoryPath;
+
+  const MediaFileEntry({
+    required this.path,
+    required this.displayName,
+    required this.directoryPath,
+  });
+
+  @override
+  int get hashCode =>
+      path.hashCode ^ displayName.hashCode ^ directoryPath.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MediaFileEntry &&
+          runtimeType == other.runtimeType &&
+          path == other.path &&
+          displayName == other.displayName &&
+          directoryPath == other.directoryPath;
+}
+
 class Thumbnail {
   final Uint8List data;
   final int width;

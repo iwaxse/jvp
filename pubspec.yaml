@@ -13,6 +13,7 @@ dependencies:
   flutter_rust_bridge: 2.11.1
   desktop_drop: ^0.7.0
   provider: ^6.1.5+1
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:

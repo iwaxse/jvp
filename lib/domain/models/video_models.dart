@@ -49,3 +49,15 @@ class Thumbnail {
     required this.height,
   });
 }
+
+class MediaFileEntry {
+  final String path;
+  final String displayName;
+  final String directoryPath;
+
+  const MediaFileEntry({
+    required this.path,
+    required this.displayName,
+    required this.directoryPath,
+  });
+}

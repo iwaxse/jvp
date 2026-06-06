@@ -22,8 +22,9 @@ import '../../../domain/repository/video_repository.dart';
 class OpenFileUseCase extends AppCommand {
   final String filePath;
   final double volume;
+  final bool autoplay;
 
-  OpenFileUseCase(this.filePath, {required this.volume});
+  OpenFileUseCase(this.filePath, {required this.volume, this.autoplay = false});
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
@@ -43,12 +44,17 @@ class OpenFileUseCase extends AppCommand {
           width: info.width,
           height: info.height,
           durationSecs: info.durationSecs,
+          sourcePath: filePath,
         ),
       );
       await repository.setPlaying(false);
       eventBus.publish(PlaybackStateEvent(false));
       await repository.seek(0.0, accurate: true);
       await repository.updateTexture();
+      if (autoplay) {
+        await repository.setPlaying(true);
+        eventBus.publish(PlaybackStateEvent(true));
+      }
     }
   }
 }

@@ -23,21 +23,24 @@ import '../../application/usecase/set_effect_usecase.dart';
 import '../video_player_view_model.dart';
 
 class ShaderSettingsPanelWidget extends StatelessWidget {
-  final VoidCallback onClose;
-  const ShaderSettingsPanelWidget({super.key, required this.onClose});
+  final VoidCallback? onClose;
+  final bool embedded;
+
+  const ShaderSettingsPanelWidget({
+    super.key,
+    this.onClose,
+    this.embedded = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF141414),
-        border: Border(left: BorderSide(color: Color(0xFF333333))),
-      ),
-      child: ExcludeFocus(
-        child: SafeArea(
-          child: Column(
-            children: [
+
+    final body = ExcludeFocus(
+      child: SafeArea(
+        child: Column(
+          children: [
+            if (!embedded)
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -55,106 +58,113 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
                         letterSpacing: 1.5,
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 20,
+                    if (onClose != null)
+                      IconButton(
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: onClose,
                       ),
-                      onPressed: onClose,
-                    ),
                   ],
                 ),
               ),
-              const Divider(color: Color(0xFF333333), height: 1),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 12),
-                      _buildSectionHeader('Detail Enhance'),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'super_res',
-                        name: 'ULTRA RES (RCAS)',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'deband',
-                        name: 'DEBAND (DITHER)',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'smooth',
-                        name: 'SMOOTH SKIN',
-                      ),
-                      _buildSharpenWithSelector(context, viewModel),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'unsharp',
-                        name: 'UNSHARP MASK',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSectionHeader('Color & Toning'),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'hdr',
-                        name: 'HDR DYNAMIC',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'cleancinema',
-                        name: 'CLEAN CINEMA',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'vintage',
-                        name: 'VINTAGE',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'cyberpunk',
-                        name: 'CYBERPUNK',
-                      ),
-                      const SizedBox(height: 16),
-                      _buildSectionHeader('Atmosphere'),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'bloom',
-                        name: 'BLOOM / GLOW',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'blur',
-                        name: 'BLUR',
-                      ),
-                      _buildSlider(
-                        context,
-                        viewModel,
-                        id: 'vignette',
-                        name: 'VIGNETTE',
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
+            if (!embedded) const Divider(color: Color(0xFF333333), height: 1),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 12),
+                    _buildSectionHeader('Detail Enhance'),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'super_res',
+                      name: 'ULTRA RES (RCAS)',
+                    ),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'deband',
+                      name: 'DEBAND (DITHER)',
+                    ),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'smooth',
+                      name: 'SMOOTH SKIN',
+                    ),
+                    _buildSharpenWithSelector(context, viewModel),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'unsharp',
+                      name: 'UNSHARP MASK',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('Color & Toning'),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'hdr',
+                      name: 'HDR DYNAMIC',
+                    ),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'cleancinema',
+                      name: 'CLEAN CINEMA',
+                    ),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'vintage',
+                      name: 'VINTAGE',
+                    ),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'cyberpunk',
+                      name: 'CYBERPUNK',
+                    ),
+                    const SizedBox(height: 16),
+                    _buildSectionHeader('Atmosphere'),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'bloom',
+                      name: 'BLOOM / GLOW',
+                    ),
+                    _buildSlider(context, viewModel, id: 'blur', name: 'BLUR'),
+                    _buildSlider(
+                      context,
+                      viewModel,
+                      id: 'vignette',
+                      name: 'VIGNETTE',
+                    ),
+                    const SizedBox(height: 24),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+
+    if (embedded) {
+      return Container(color: const Color(0xFF141414), child: body);
+    }
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF141414),
+        border: Border(left: BorderSide(color: Color(0xFF333333))),
+      ),
+      child: body,
     );
   }
 

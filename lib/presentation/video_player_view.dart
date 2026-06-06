@@ -22,7 +22,7 @@ import '../application/app_event_bus.dart';
 import '../application/usecase/toggle_play_usecase.dart';
 import 'video_player_view_controller.dart';
 import 'video_player_view_model.dart';
-import 'components/shader_settings_panel_widget.dart';
+import 'components/right_sidebar_panel_widget.dart';
 import 'components/video_control_bar_widget.dart';
 import 'components/video_drop_target_widget.dart';
 
@@ -49,11 +49,16 @@ class VideoPlayerView extends StatelessWidget {
           final height = context.select<VideoPlayerViewModel, int>(
             (vm) => vm.height,
           );
-          final showTuner = context.select<VideoPlayerViewController, bool>(
-            (c) => c.showTuner,
+          final showSideMenu = context.select<VideoPlayerViewController, bool>(
+            (c) => c.showSideMenu,
           );
+          final sideMenuTabIndex = context
+              .select<VideoPlayerViewController, int>(
+                (c) => c.sideMenuTabIndex,
+              );
           final showControlBar = context
               .select<VideoPlayerViewController, bool>((c) => c.showControlBar);
+          const sidePanelWidth = 380.0;
 
           return Scaffold(
             backgroundColor: const Color(0xFF0A0A0A),
@@ -69,7 +74,7 @@ class VideoPlayerView extends StatelessWidget {
                       );
                     },
                     onLongPress: () {
-                      controller.showTuner = !controller.showTuner;
+                      controller.showSideMenu = !controller.showSideMenu;
                     },
                     behavior: HitTestBehavior.opaque,
                     child: Center(
@@ -95,7 +100,7 @@ class VideoPlayerView extends StatelessWidget {
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOutCubic,
                     left: 24,
-                    right: showTuner ? 364 : 24,
+                    right: showSideMenu ? sidePanelWidth + 24 : 24,
                     bottom: showControlBar ? 24 : -100,
                     child: const VideoControlBarWidget(),
                   ),
@@ -104,11 +109,15 @@ class VideoPlayerView extends StatelessWidget {
                     curve: Curves.easeOutCubic,
                     top: 0,
                     bottom: 0,
-                    right: showTuner ? 0 : -340,
-                    width: 340,
-                    child: ShaderSettingsPanelWidget(
+                    right: showSideMenu ? 0 : -sidePanelWidth,
+                    width: sidePanelWidth,
+                    child: RightSidebarPanelWidget(
+                      initialTabIndex: sideMenuTabIndex,
                       onClose: () {
-                        controller.showTuner = false;
+                        controller.showSideMenu = false;
+                      },
+                      onTabChanged: (index) {
+                        controller.sideMenuTabIndex = index;
                       },
                     ),
                   ),
@@ -136,6 +145,15 @@ class VideoPlayerView extends StatelessWidget {
       SizedBox(height: 8),
       Text(
         '[Space] Play/Pause  •  [←/→] Frame Step  •  [D] Toggle Controls',
+        style: TextStyle(
+          color: Color(0xFF444444),
+          fontSize: 12,
+          fontWeight: FontWeight.w300,
+        ),
+      ),
+      SizedBox(height: 4),
+      Text(
+        '[F] Toggle Files / Playlist / Tuner',
         style: TextStyle(
           color: Color(0xFF444444),
           fontSize: 12,

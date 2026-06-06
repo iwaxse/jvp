@@ -113,4 +113,28 @@ class VideoRepositoryImpl implements VideoRepository {
   Future<bool> updateFrame() async {
     return await rust.updateFrame();
   }
+
+  @override
+  Future<List<String>> getMediaSearchRoots() async {
+    return await rust.getMediaSearchRoots();
+  }
+
+  @override
+  Future<void> setMediaSearchRoots(List<String> roots) async {
+    await rust.setMediaSearchRoots(roots: roots);
+  }
+
+  @override
+  Future<List<MediaFileEntry>> scanMediaFiles() async {
+    final files = await rust.scanMediaFiles();
+    return files
+        .map(
+          (file) => MediaFileEntry(
+            path: file.path,
+            displayName: file.displayName,
+            directoryPath: file.directoryPath,
+          ),
+        )
+        .toList();
+  }
 }

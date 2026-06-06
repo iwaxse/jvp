@@ -16,10 +16,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-pub use crate::domain::video::{Thumbnail, VideoInfo};
+pub use crate::domain::video::{MediaFileEntry, Thumbnail, VideoInfo};
 pub use crate::service::playback::emit_event;
 
 use crate::frb_generated::StreamSink;
+use crate::infrastructure::file_browser;
 use crate::infrastructure::state::{ACTIVE_SHADER, RENDER_STATE};
 use crate::service::playback::PlaybackService;
 use once_cell::sync::Lazy;
@@ -108,6 +109,18 @@ pub fn set_effect_intensity(effect: String, intensity: f32) {
 
 pub fn set_volume(volume: f32) {
     PlaybackService::set_volume(volume);
+}
+
+pub fn get_media_search_roots() -> Vec<String> {
+    file_browser::get_media_search_roots()
+}
+
+pub fn set_media_search_roots(roots: Vec<String>) -> Result<(), String> {
+    file_browser::set_media_search_roots(roots)
+}
+
+pub fn scan_media_files() -> Vec<MediaFileEntry> {
+    file_browser::scan_media_files()
 }
 
 #[no_mangle]

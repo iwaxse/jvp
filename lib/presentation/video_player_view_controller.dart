@@ -29,7 +29,8 @@ class VideoPlayerViewController extends ChangeNotifier {
   final BuildContext context;
   final VideoPlayerViewModel viewModel;
 
-  bool _showTuner = false;
+  bool _showSideMenu = false;
+  int _sideMenuTabIndex = 0;
   bool _showControlBar = true;
   bool _isDraggingFile = false;
   StreamSubscription<ToggleTunerAction>? _tunerSubscription;
@@ -43,12 +44,18 @@ class VideoPlayerViewController extends ChangeNotifier {
   double? _scrubTargetPos;
   bool _wasPlayingBeforeHold = false;
 
-  bool get showTuner => _showTuner;
+  bool get showSideMenu => _showSideMenu;
+  int get sideMenuTabIndex => _sideMenuTabIndex;
   bool get showControlBar => _showControlBar;
   bool get isDraggingFile => _isDraggingFile;
 
-  set showTuner(bool val) {
-    _showTuner = val;
+  set showSideMenu(bool val) {
+    _showSideMenu = val;
+    notifyListeners();
+  }
+
+  set sideMenuTabIndex(int val) {
+    _sideMenuTabIndex = val;
     notifyListeners();
   }
 
@@ -68,7 +75,8 @@ class VideoPlayerViewController extends ChangeNotifier {
         .read<AppEventBus>()
         .on<ToggleTunerAction>()
         .listen((_) {
-          _showTuner = !_showTuner;
+          _showSideMenu = true;
+          _sideMenuTabIndex = 2;
           notifyListeners();
         });
   }
@@ -81,6 +89,7 @@ class VideoPlayerViewController extends ChangeNotifier {
       LogicalKeyboardKey.shiftLeft,
       LogicalKeyboardKey.shiftRight,
       LogicalKeyboardKey.space,
+      LogicalKeyboardKey.keyF,
       LogicalKeyboardKey.keyD,
       LogicalKeyboardKey.arrowLeft,
       LogicalKeyboardKey.arrowRight,
@@ -93,6 +102,9 @@ class VideoPlayerViewController extends ChangeNotifier {
         eventBus.publish(
           TogglePlayUseCase(currentIsPlaying: viewModel.isPlaying),
         );
+      } else if (key == LogicalKeyboardKey.keyF) {
+        _showSideMenu = !_showSideMenu;
+        notifyListeners();
       } else if (key == LogicalKeyboardKey.keyD) {
         _showControlBar = !_showControlBar;
         notifyListeners();

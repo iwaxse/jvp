@@ -65,3 +65,12 @@ Future<void> setEffectIntensity({
 
 Future<void> setVolume({required double volume}) =>
     RustLib.instance.api.crateApiSimpleSetVolume(volume: volume);
+
+Future<List<String>> getMediaSearchRoots() =>
+    RustLib.instance.api.crateApiSimpleGetMediaSearchRoots();
+
+Future<void> setMediaSearchRoots({required List<String> roots}) =>
+    RustLib.instance.api.crateApiSimpleSetMediaSearchRoots(roots: roots);
+
+Future<List<MediaFileEntry>> scanMediaFiles() =>
+    RustLib.instance.api.crateApiSimpleScanMediaFiles();
