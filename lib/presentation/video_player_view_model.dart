@@ -60,6 +60,18 @@ class VideoPlayerViewModel extends ChangeNotifier {
   bool get isMuted => _isMuted;
   bool get wasPlayingBeforeScrub => _wasPlayingBeforeScrub;
 
+  final Map<int, ui.Image> _thumbnailCache = {};
+  final List<int> _thumbnailCacheKeys = [];
+  static const int _maxCacheSize = 30;
+
+  void _clearThumbnailCache() {
+    for (final img in _thumbnailCache.values) {
+      img.dispose();
+    }
+    _thumbnailCache.clear();
+    _thumbnailCacheKeys.clear();
+  }
+
   VideoPlayerViewModel(this._repository, this._eventBus)
     : _getThumbnailUseCase = GetThumbnailUseCase(_repository) {
     _initListeners();
@@ -130,11 +142,13 @@ class VideoPlayerViewModel extends ChangeNotifier {
         _durationSecs = event.durationSecs;
         _isLoaded = true;
         _currentPosSecs = 0.0;
+        _clearThumbnailCache();
         notifyListeners();
       } else if (event is VideoUnloadedEvent) {
         _isLoaded = false;
         _isPlaying = false;
         _textureId = null;
+        _clearThumbnailCache();
         notifyListeners();
       } else if (event is PlaybackPositionEvent) {
         _currentPosSecs = event.position;
@@ -188,6 +202,10 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   Future<ui.Image?> getThumbnailImage(double seconds) async {
+    final key = seconds.round();
+    if (_thumbnailCache.containsKey(key)) {
+      return _thumbnailCache[key]!.clone();
+    }
     final thumb = await getThumbnail(seconds);
     if (thumb == null) return null;
     final completer = Completer<ui.Image>();
@@ -200,7 +218,18 @@ class VideoPlayerViewModel extends ChangeNotifier {
         completer.complete(img);
       },
     );
-    return completer.future;
+    final img = await completer.future;
+    if (_thumbnailCache.containsKey(key)) {
+      img.dispose();
+      return _thumbnailCache[key]!.clone();
+    }
+    if (_thumbnailCacheKeys.length >= _maxCacheSize) {
+      final oldestKey = _thumbnailCacheKeys.removeAt(0);
+      _thumbnailCache.remove(oldestKey)?.dispose();
+    }
+    _thumbnailCache[key] = img;
+    _thumbnailCacheKeys.add(key);
+    return img.clone();
   }
 
   final Map<String, double> _effects = {
@@ -225,6 +254,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   void dispose() {
     _eventSubscription?.cancel();
     _eventBusSubscription?.cancel();
+    _clearThumbnailCache();
     super.dispose();
   }
 }

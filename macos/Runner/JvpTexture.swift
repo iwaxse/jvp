@@ -343,6 +343,8 @@ class JvpTexture: NSObject, FlutterTexture {
             &cvTexture
         )
         if status == kCVReturnSuccess, let cvTex = cvTexture, let mtlTex = CVMetalTextureGetTexture(cvTex) {
+            self.sharedCvTexture = cvTex
+            self.sharedMtlTexture = mtlTex
             let ptr = Unmanaged.passUnretained(mtlTex).toOpaque()
             setOutputTextureCallback?(ptr, Int32(videoWidth), Int32(videoHeight))
             renderCallback?()
@@ -402,9 +404,8 @@ class JvpTexture: NSObject, FlutterTexture {
     func isCompleted() -> Bool {
         guard let item = playerItem else { return false }
         let current = CMTimeGetSeconds(item.currentTime())
-        let duration = CMTimeGetSeconds(item.duration)
-        if duration.isNaN || duration <= 0.0 { return false }
-        return current >= (duration - 0.1)
+        if videoDuration.isNaN || videoDuration <= 0.0 { return false }
+        return current >= (videoDuration - 0.1)
     }
     func generateThumbnail(atSeconds: Double) -> (data: Data, width: Int, height: Int)? {
         var activePlayer = player

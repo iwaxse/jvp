@@ -672,7 +672,7 @@ impl RenderState {
             rp.draw(0..3, 0..1);
         }
         self.queue.submit(std::iter::once(encoder.finish()));
-        self.device.poll(wgpu::Maintain::Wait);
+        self.device.poll(wgpu::Maintain::Poll);
     }
 }
 
