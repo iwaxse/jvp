@@ -202,7 +202,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   Future<ui.Image?> getThumbnailImage(double seconds) async {
-    final key = seconds.round();
+    final key = (seconds * 1000).round();
     if (_thumbnailCache.containsKey(key)) {
       return _thumbnailCache[key]!.clone();
     }
