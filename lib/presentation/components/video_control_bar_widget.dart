@@ -61,13 +61,6 @@ class VideoControlBarWidget extends StatelessWidget {
           final realTimeFps = context.select<VideoPlayerViewModel, double>(
             (vm) => vm.realTimeFps,
           );
-          final currentPosSecs = context.select<VideoPlayerViewModel, double>(
-            (vm) => vm.currentPosSecs,
-          );
-
-          final max = durationSecs > 0 ? durationSecs : 1.0;
-          final displayValue = (controller.localScrubValue ?? currentPosSecs)
-              .clamp(0.0, max);
 
           return ExcludeFocus(
             child: ClipRRect(
@@ -81,75 +74,10 @@ class VideoControlBarWidget extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          _formatDuration(displayValue),
-                          style: const TextStyle(
-                            color: Color(0xFF888888),
-                            fontSize: 12,
-                          ),
-                        ),
-                        Expanded(
-                          child: MouseRegion(
-                            onHover: (event) =>
-                                controller.handleHover(event, max),
-                            onExit: (_) => controller.removeThumbnail(),
-                            child: SliderTheme(
-                              data: SliderTheme.of(context).copyWith(
-                                trackHeight: 4,
-                                activeTrackColor: const Color(0xFFE5E5E5),
-                                inactiveTrackColor: const Color(0xFF333333),
-                                thumbColor: Colors.white,
-                                thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 6,
-                                ),
-                              ),
-                              child: Slider(
-                                key: controller.sliderKey,
-                                focusNode: controller.sliderFocusNode,
-                                value: displayValue,
-                                max: max,
-                                onChangeStart: (val) {
-                                  controller.removeThumbnail();
-                                  controller.localScrubValue = val;
-                                  eventBus.publish(
-                                    StartScrubbingUseCase(
-                                      currentIsPlaying: isPlaying,
-                                    ),
-                                  );
-                                },
-                                onChanged: (val) {
-                                  controller.localScrubValue = val;
-                                  eventBus.publish(
-                                    UpdateScrubValueUseCase(
-                                      val,
-                                      isScrubbing: true,
-                                    ),
-                                  );
-                                },
-                                onChangeEnd: (val) {
-                                  eventBus.publish(
-                                    EndScrubbingUseCase(
-                                      seconds: val,
-                                      wasPlayingBeforeScrub:
-                                          viewModel.wasPlayingBeforeScrub,
-                                    ),
-                                  );
-                                  controller.localScrubValue = null;
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        Text(
-                          _formatDuration(durationSecs),
-                          style: const TextStyle(
-                            color: Color(0xFF888888),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
+                    _TimeSlider(
+                      controller: controller,
+                      durationSecs: durationSecs,
+                      isPlaying: isPlaying,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -267,6 +195,90 @@ class VideoControlBarWidget extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _TimeSlider extends StatelessWidget {
+  final VideoControlBarWidgetController controller;
+  final double durationSecs;
+  final bool isPlaying;
+
+  const _TimeSlider({
+    required this.controller,
+    required this.durationSecs,
+    required this.isPlaying,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final eventBus = context.read<AppEventBus>();
+    final currentPosSecs = context.select<VideoPlayerViewModel, double>(
+      (vm) => vm.currentPosSecs,
+    );
+
+    final max = durationSecs > 0 ? durationSecs : 1.0;
+    final displayValue = (controller.localScrubValue ?? currentPosSecs).clamp(
+      0.0,
+      max,
+    );
+
+    return Row(
+      children: [
+        Text(
+          _formatDuration(displayValue),
+          style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+        ),
+        Expanded(
+          child: MouseRegion(
+            onHover: (event) => controller.handleHover(event, max),
+            onExit: (_) => controller.removeThumbnail(),
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 4,
+                activeTrackColor: const Color(0xFFE5E5E5),
+                inactiveTrackColor: const Color(0xFF333333),
+                thumbColor: Colors.white,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+              ),
+              child: Slider(
+                key: controller.sliderKey,
+                focusNode: controller.sliderFocusNode,
+                value: displayValue,
+                max: max,
+                onChangeStart: (val) {
+                  controller.removeThumbnail();
+                  controller.localScrubValue = val;
+                  eventBus.publish(
+                    StartScrubbingUseCase(currentIsPlaying: isPlaying),
+                  );
+                },
+                onChanged: (val) {
+                  controller.localScrubValue = val;
+                  eventBus.publish(
+                    UpdateScrubValueUseCase(val, isScrubbing: true),
+                  );
+                },
+                onChangeEnd: (val) {
+                  eventBus.publish(
+                    EndScrubbingUseCase(
+                      seconds: val,
+                      wasPlayingBeforeScrub: context
+                          .read<VideoPlayerViewModel>()
+                          .wasPlayingBeforeScrub,
+                    ),
+                  );
+                  controller.localScrubValue = null;
+                },
+              ),
+            ),
+          ),
+        ),
+        Text(
+          _formatDuration(durationSecs),
+          style: const TextStyle(color: Color(0xFF888888), fontSize: 12),
+        ),
+      ],
     );
   }
 
