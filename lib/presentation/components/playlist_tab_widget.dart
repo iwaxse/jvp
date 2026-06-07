@@ -101,22 +101,30 @@ class PlaylistTabWidget extends StatelessWidget {
                       ),
                     ),
                     child: ListTile(
+                      onTap: () => viewModel.playPlaylistIndex(index),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       dense: true,
-                      leading: IconButton(
-                        onPressed: () => viewModel.playPlaylistIndex(index),
-                        icon: const Icon(
-                          Icons.play_circle_outline,
-                          color: Color(0xFFD4AF37),
-                        ),
-                        tooltip: 'Play',
+                      leading: Icon(
+                        isCurrent
+                            ? Icons.play_circle
+                            : Icons.play_circle_outline,
+                        color: const Color(0xFFD4AF37),
+                        size: 22,
                       ),
                       title: Text(
                         entry.displayName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFFEFEFEF),
+                        style: TextStyle(
+                          color: isCurrent
+                              ? const Color(0xFFFFF2CC)
+                              : const Color(0xFFEFEFEF),
                           fontSize: 13,
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
@@ -134,6 +142,7 @@ class PlaylistTabWidget extends StatelessWidget {
                         icon: const Icon(
                           Icons.remove_circle_outline,
                           color: Color(0xFFB56B6B),
+                          size: 20,
                         ),
                         tooltip: 'Remove',
                       ),
