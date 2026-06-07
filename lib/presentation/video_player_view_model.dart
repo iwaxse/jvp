@@ -23,6 +23,10 @@ import 'package:flutter/foundation.dart';
 import '../../application/app_event_bus.dart';
 import '../../application/usecase/open_file_usecase.dart';
 import '../../application/usecase/get_thumbnail_usecase.dart';
+import '../../application/usecase/play_next_track_usecase.dart';
+import '../../application/usecase/add_playlist_entry_usecase.dart';
+import '../../application/usecase/remove_playlist_entry_usecase.dart';
+import '../../application/usecase/clear_playlist_usecase.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
 import '../../domain/repository/playlist_repository.dart';
@@ -32,6 +36,11 @@ class VideoPlayerViewModel extends ChangeNotifier {
   final PlaylistRepository _playlistRepository;
   final AppEventBus _eventBus;
   final GetThumbnailUseCase _getThumbnailUseCase;
+  final PlayNextTrackUseCase _playNextTrackUseCase;
+  final AddPlaylistEntryUseCase _addPlaylistEntryUseCase;
+  final RemovePlaylistEntryUseCase _removePlaylistEntryUseCase;
+  final ClearPlaylistUseCase _clearPlaylistUseCase;
+
   StreamSubscription<AppEvent>? _eventBusSubscription;
 
   bool _isLoaded = false;
@@ -97,13 +106,20 @@ class VideoPlayerViewModel extends ChangeNotifier {
     this._repository,
     this._playlistRepository,
     this._eventBus,
-  ) : _getThumbnailUseCase = GetThumbnailUseCase(_repository) {
+  ) : _getThumbnailUseCase = GetThumbnailUseCase(_repository),
+      _playNextTrackUseCase = PlayNextTrackUseCase(),
+      _addPlaylistEntryUseCase = AddPlaylistEntryUseCase(_playlistRepository),
+      _removePlaylistEntryUseCase = RemovePlaylistEntryUseCase(
+        _playlistRepository,
+      ),
+      _clearPlaylistUseCase = ClearPlaylistUseCase(_playlistRepository) {
     _initListeners();
     Future.microtask(_bootstrap);
   }
 
   Future<void> _bootstrap() async {
-    await _loadPlaylist();
+    _playlist = await _playlistRepository.loadPlaylist();
+    notifyListeners();
     await _loadMediaLibrary();
   }
 
@@ -207,31 +223,22 @@ class VideoPlayerViewModel extends ChangeNotifier {
       return;
     }
 
-    final nextPlaylistEntry = _nextPlaylistEntry();
-    if (nextPlaylistEntry != null) {
-      await _playMediaEntry(nextPlaylistEntry, autoplay: true);
-      notifyListeners();
-      return;
-    }
-
-    _isPlaying = false;
-    await _repository.setPlaying(false);
-    await _repository.seek(0.0, accurate: true);
-    await _repository.updateTexture();
-    _eventBus.publish(PlaybackPositionEvent(0.0));
-    _eventBus.publish(PlaybackStateEvent(false));
-    notifyListeners();
-  }
-
-  MediaFileEntry? _nextPlaylistEntry() {
-    final currentPath = _currentMediaPath;
-    if (currentPath == null) return null;
-    final currentIndex = _playlist.indexWhere(
-      (item) => item.path == currentPath,
+    await _playNextTrackUseCase.execute(
+      playlist: _playlist,
+      currentPath: _currentMediaPath,
+      volume: volume,
+      eventBus: _eventBus,
     );
-    if (currentIndex < 0) return null;
-    if (currentIndex + 1 >= _playlist.length) return null;
-    return _playlist[currentIndex + 1];
+
+    if (_currentMediaPath == null) {
+      _isPlaying = false;
+      await _repository.setPlaying(false);
+      await _repository.seek(0.0, accurate: true);
+      await _repository.updateTexture();
+      _eventBus.publish(PlaybackPositionEvent(0.0));
+      _eventBus.publish(PlaybackStateEvent(false));
+      notifyListeners();
+    }
   }
 
   Future<void> _playMediaEntry(
@@ -244,33 +251,27 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> addToPlaylist(MediaFileEntry entry) async {
-    if (_playlist.any((item) => item.path == entry.path)) return;
-    _playlist = [..._playlist, entry];
+    _playlist = await _addPlaylistEntryUseCase.execute(_playlist, entry);
     notifyListeners();
-    await _savePlaylist();
   }
 
   Future<void> removeFromPlaylist(String path) async {
-    _playlist = _playlist.where((item) => item.path != path).toList();
+    _playlist = await _removePlaylistEntryUseCase.execute(_playlist, path);
     if (_currentMediaPath == path) {
       _currentMediaPath = null;
     }
     notifyListeners();
-    await _savePlaylist();
   }
 
   Future<void> clearPlaylist() async {
+    await _clearPlaylistUseCase.execute();
     _playlist = [];
     notifyListeners();
-    await _savePlaylist();
   }
 
   Future<void> playPlaylistEntry(MediaFileEntry entry) async {
-    if (!_playlist.any((item) => item.path == entry.path)) {
-      _playlist = [..._playlist, entry];
-      notifyListeners();
-      await _savePlaylist();
-    }
+    _playlist = await _addPlaylistEntryUseCase.execute(_playlist, entry);
+    notifyListeners();
     await _playMediaEntry(entry, autoplay: true);
   }
 
@@ -281,15 +282,6 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   Future<void> openMediaFile(String path) async {
     _eventBus.publish(OpenFileUseCase(path, volume: volume));
-  }
-
-  Future<void> _loadPlaylist() async {
-    _playlist = await _playlistRepository.loadPlaylist();
-    notifyListeners();
-  }
-
-  Future<void> _savePlaylist() async {
-    await _playlistRepository.savePlaylist(_playlist);
   }
 
   Future<void> _loadMediaLibrary() async {

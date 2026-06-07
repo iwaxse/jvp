@@ -16,29 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import '../app_event_bus.dart';
-import '../../../domain/repository/video_repository.dart';
+import '../../../domain/repository/playlist_repository.dart';
 
-class EndScrubbingUseCase extends AppCommand {
-  final double seconds;
-  final bool wasPlayingBeforeScrub;
+class ClearPlaylistUseCase {
+  final PlaylistRepository _repository;
+  ClearPlaylistUseCase(this._repository);
 
-  EndScrubbingUseCase({
-    required this.seconds,
-    required this.wasPlayingBeforeScrub,
-  });
-
-  @override
-  Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    eventBus.publish(
-      ScrubbingStateEvent(isScrubbing: false, wasPlayingBeforeScrub: false),
-    );
-    await repository.seek(seconds, accurate: true);
-    await repository.updateTexture();
-
-    if (wasPlayingBeforeScrub) {
-      await repository.setPlaying(true);
-      eventBus.publish(PlaybackStateEvent(true));
-    }
+  Future<void> execute() async {
+    await _repository.savePlaylist([]);
   }
 }

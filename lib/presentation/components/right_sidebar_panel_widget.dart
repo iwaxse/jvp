@@ -76,68 +76,70 @@ class _RightSidebarPanelWidgetState extends State<RightSidebarPanelWidget>
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF141414),
-        border: Border(left: BorderSide(color: Color(0xFF333333))),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
-              child: Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Library',
-                      style: TextStyle(
-                        color: Color(0xFFEAEAEA),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
+    return ExcludeFocus(
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF141414),
+          border: Border(left: BorderSide(color: Color(0xFF333333))),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Library',
+                        style: TextStyle(
+                          color: Color(0xFFEAEAEA),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    onPressed: widget.onClose,
-                    icon: const Icon(
-                      Icons.close,
-                      color: Color(0xFFB9B9B9),
-                      size: 20,
+                    IconButton(
+                      onPressed: widget.onClose,
+                      icon: const Icon(
+                        Icons.close,
+                        color: Color(0xFFB9B9B9),
+                        size: 20,
+                      ),
+                      tooltip: 'Close',
                     ),
-                    tooltip: 'Close',
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            TabBar(
-              controller: _tabController,
-              indicatorColor: const Color(0xFFD4AF37),
-              labelColor: const Color(0xFFD4AF37),
-              unselectedLabelColor: const Color(0xFF8A8A8A),
-              labelStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-              tabs: const [
-                Tab(text: 'Files'),
-                Tab(text: 'Playlist'),
-                Tab(text: 'Tuner'),
-              ],
-            ),
-            const Divider(color: Color(0xFF333333), height: 1),
-            Expanded(
-              child: TabBarView(
+              TabBar(
                 controller: _tabController,
-                children: [
-                  FileBrowserTabWidget(onSettingsPressed: _openRootSettings),
-                  const PlaylistTabWidget(),
-                  const ShaderSettingsPanelWidget(embedded: true),
+                indicatorColor: const Color(0xFFD4AF37),
+                labelColor: const Color(0xFFD4AF37),
+                unselectedLabelColor: const Color(0xFF8A8A8A),
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                tabs: const [
+                  Tab(text: 'Files'),
+                  Tab(text: 'Playlist'),
+                  Tab(text: 'Tuner'),
                 ],
               ),
-            ),
-          ],
+              const Divider(color: Color(0xFF333333), height: 1),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    FileBrowserTabWidget(onSettingsPressed: _openRootSettings),
+                    const PlaylistTabWidget(),
+                    const ShaderSettingsPanelWidget(embedded: true),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

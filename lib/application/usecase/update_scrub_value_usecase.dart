@@ -27,7 +27,6 @@ class UpdateScrubValueUseCase extends AppCommand {
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    eventBus.publish(PlaybackPositionEvent(seconds));
     await repository.seek(seconds, accurate: !isScrubbing);
     await repository.updateTexture();
   }

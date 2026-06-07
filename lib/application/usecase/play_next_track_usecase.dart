@@ -17,28 +17,26 @@
  */
 
 import '../app_event_bus.dart';
-import '../../../domain/repository/video_repository.dart';
+import 'open_file_usecase.dart';
+import '../../../domain/models/video_models.dart';
 
-class EndScrubbingUseCase extends AppCommand {
-  final double seconds;
-  final bool wasPlayingBeforeScrub;
+class PlayNextTrackUseCase {
+  Future<void> execute({
+    required List<MediaFileEntry> playlist,
+    required String? currentPath,
+    required double volume,
+    required AppEventBus eventBus,
+  }) async {
+    if (currentPath == null || playlist.isEmpty) return;
 
-  EndScrubbingUseCase({
-    required this.seconds,
-    required this.wasPlayingBeforeScrub,
-  });
-
-  @override
-  Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    eventBus.publish(
-      ScrubbingStateEvent(isScrubbing: false, wasPlayingBeforeScrub: false),
+    final currentIndex = playlist.indexWhere(
+      (item) => item.path == currentPath,
     );
-    await repository.seek(seconds, accurate: true);
-    await repository.updateTexture();
+    if (currentIndex < 0 || currentIndex + 1 >= playlist.length) return;
 
-    if (wasPlayingBeforeScrub) {
-      await repository.setPlaying(true);
-      eventBus.publish(PlaybackStateEvent(true));
-    }
+    final nextEntry = playlist[currentIndex + 1];
+    eventBus.publish(
+      OpenFileUseCase(nextEntry.path, volume: volume, autoplay: true),
+    );
   }
 }

@@ -36,122 +36,117 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
 
-    final body = ExcludeFocus(
-      child: SafeArea(
-        child: Column(
-          children: [
-            if (!embedded)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Engine Tuner',
-                      style: TextStyle(
-                        color: Color(0xFFD4AF37),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5,
+    final body = SafeArea(
+      child: Column(
+        children: [
+          if (!embedded)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Engine Tuner',
+                    style: TextStyle(
+                      color: Color(0xFFD4AF37),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  if (onClose != null)
+                    IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: Colors.white,
+                        size: 20,
                       ),
+                      onPressed: onClose,
                     ),
-                    if (onClose != null)
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                        onPressed: onClose,
-                      ),
-                  ],
-                ),
-              ),
-            if (!embedded) const Divider(color: Color(0xFF333333), height: 1),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
-                    _buildSectionHeader('Detail Enhance'),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'super_res',
-                      name: 'ULTRA RES (RCAS)',
-                    ),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'deband',
-                      name: 'DEBAND (DITHER)',
-                    ),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'smooth',
-                      name: 'SMOOTH SKIN',
-                    ),
-                    _buildSharpenWithSelector(context, viewModel),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'unsharp',
-                      name: 'UNSHARP MASK',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSectionHeader('Color & Toning'),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'hdr',
-                      name: 'HDR DYNAMIC',
-                    ),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'cleancinema',
-                      name: 'CLEAN CINEMA',
-                    ),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'vintage',
-                      name: 'VINTAGE',
-                    ),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'cyberpunk',
-                      name: 'CYBERPUNK',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildSectionHeader('Atmosphere'),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'bloom',
-                      name: 'BLOOM / GLOW',
-                    ),
-                    _buildSlider(context, viewModel, id: 'blur', name: 'BLUR'),
-                    _buildSlider(
-                      context,
-                      viewModel,
-                      id: 'vignette',
-                      name: 'VIGNETTE',
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                ),
+                ],
               ),
             ),
-          ],
-        ),
+          if (!embedded) const Divider(color: Color(0xFF333333), height: 1),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 12),
+                  _buildSectionHeader('Detail Enhance'),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'super_res',
+                    name: 'ULTRA RES (RCAS)',
+                  ),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'deband',
+                    name: 'DEBAND (DITHER)',
+                  ),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'smooth',
+                    name: 'SMOOTH SKIN',
+                  ),
+                  _buildSharpenWithSelector(context, viewModel),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'unsharp',
+                    name: 'UNSHARP MASK',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Color & Toning'),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'hdr',
+                    name: 'HDR DYNAMIC',
+                  ),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'cleancinema',
+                    name: 'CLEAN CINEMA',
+                  ),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'vintage',
+                    name: 'VINTAGE',
+                  ),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'cyberpunk',
+                    name: 'CYBERPUNK',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildSectionHeader('Atmosphere'),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'bloom',
+                    name: 'BLOOM / GLOW',
+                  ),
+                  _buildSlider(context, viewModel, id: 'blur', name: 'BLUR'),
+                  _buildSlider(
+                    context,
+                    viewModel,
+                    id: 'vignette',
+                    name: 'VIGNETTE',
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
 
@@ -219,6 +214,7 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             ),
             child: Slider(
+              focusNode: FocusNode(canRequestFocus: false, skipTraversal: true),
               value: value,
               min: 0.0,
               max: 1.0,
@@ -260,6 +256,10 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   DropdownButton<double>(
+                    focusNode: FocusNode(
+                      canRequestFocus: false,
+                      skipTraversal: true,
+                    ),
                     value: isLaplacian ? 1.0 : 0.0,
                     dropdownColor: const Color(0xFF141414),
                     underline: const SizedBox(),
@@ -304,6 +304,7 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
               thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
             ),
             child: Slider(
+              focusNode: FocusNode(canRequestFocus: false, skipTraversal: true),
               value: value,
               min: 0.0,
               max: 1.0,

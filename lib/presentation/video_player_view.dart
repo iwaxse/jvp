@@ -62,66 +62,69 @@ class VideoPlayerView extends StatelessWidget {
 
           return Scaffold(
             backgroundColor: const Color(0xFF0A0A0A),
-            body: VideoDropTargetWidget(
-              child: Stack(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      eventBus.publish(
-                        TogglePlayUseCase(
-                          currentIsPlaying: viewModel.isPlaying,
-                        ),
-                      );
-                    },
-                    onLongPress: () {
-                      controller.showSideMenu = !controller.showSideMenu;
-                    },
-                    behavior: HitTestBehavior.opaque,
-                    child: Center(
-                      child: isLoaded && textureId != null
-                          ? AspectRatio(
-                              aspectRatio: width / height,
-                              child: Texture(textureId: textureId),
-                            )
-                          : const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.movie_creation_outlined,
-                                  color: Color(0xFF555555),
-                                  size: 64,
-                                ),
-                                uiKeyLabel,
-                              ],
-                            ),
-                    ),
-                  ),
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    left: 24,
-                    right: showSideMenu ? sidePanelWidth + 24 : 24,
-                    bottom: showControlBar ? 24 : -100,
-                    child: const VideoControlBarWidget(),
-                  ),
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOutCubic,
-                    top: 0,
-                    bottom: 0,
-                    right: showSideMenu ? 0 : -sidePanelWidth,
-                    width: sidePanelWidth,
-                    child: RightSidebarPanelWidget(
-                      initialTabIndex: sideMenuTabIndex,
-                      onClose: () {
-                        controller.showSideMenu = false;
+            body: Focus(
+              autofocus: true,
+              child: VideoDropTargetWidget(
+                child: Stack(
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        eventBus.publish(
+                          TogglePlayUseCase(
+                            currentIsPlaying: viewModel.isPlaying,
+                          ),
+                        );
                       },
-                      onTabChanged: (index) {
-                        controller.sideMenuTabIndex = index;
+                      onLongPress: () {
+                        controller.showSideMenu = !controller.showSideMenu;
                       },
+                      behavior: HitTestBehavior.opaque,
+                      child: Center(
+                        child: isLoaded && textureId != null
+                            ? AspectRatio(
+                                aspectRatio: width / height,
+                                child: Texture(textureId: textureId),
+                              )
+                            : const Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.movie_creation_outlined,
+                                    color: Color(0xFF555555),
+                                    size: 64,
+                                  ),
+                                  uiKeyLabel,
+                                ],
+                              ),
+                      ),
                     ),
-                  ),
-                ],
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      left: 24,
+                      right: showSideMenu ? sidePanelWidth + 24 : 24,
+                      bottom: showControlBar ? 24 : -100,
+                      child: const VideoControlBarWidget(),
+                    ),
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutCubic,
+                      top: 0,
+                      bottom: 0,
+                      right: showSideMenu ? 0 : -sidePanelWidth,
+                      width: sidePanelWidth,
+                      child: RightSidebarPanelWidget(
+                        initialTabIndex: sideMenuTabIndex,
+                        onClose: () {
+                          controller.showSideMenu = false;
+                        },
+                        onTabChanged: (index) {
+                          controller.sideMenuTabIndex = index;
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
