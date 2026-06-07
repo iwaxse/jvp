@@ -30,6 +30,14 @@ class VideoInfo {
     required this.durationSecs,
     required this.frameRate,
   });
+
+  double get frameDuration => frameRate > 0 ? (1.0 / frameRate) : (1.0 / 30.0);
+
+  double calculateTargetPosition(double currentPosSecs, int frames) {
+    return (currentPosSecs + frames * frameDuration)
+        .clamp(0.0, durationSecs)
+        .toDouble();
+  }
 }
 
 class Thumbnail {
@@ -41,5 +49,17 @@ class Thumbnail {
     required this.data,
     required this.width,
     required this.height,
+  });
+}
+
+class MediaFileEntry {
+  final String path;
+  final String displayName;
+  final String directoryPath;
+
+  const MediaFileEntry({
+    required this.path,
+    required this.displayName,
+    required this.directoryPath,
   });
 }

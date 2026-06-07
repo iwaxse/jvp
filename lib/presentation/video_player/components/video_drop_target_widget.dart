@@ -19,36 +19,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
-import '../../application/app_event_bus.dart';
+import '../../../application/app_event_bus.dart';
+import '../../../application/commands/open_file_command.dart';
+import '../controller/video_player_ui_controller.dart';
+import '../video_player_view_model.dart';
 
-class VideoDropTarget extends StatefulWidget {
+class VideoDropTargetWidget extends StatelessWidget {
   final Widget child;
-
-  const VideoDropTarget({super.key, required this.child});
-
-  @override
-  State<VideoDropTarget> createState() => _VideoDropTargetState();
-}
-
-class _VideoDropTargetState extends State<VideoDropTarget> {
-  bool _isDragging = false;
+  const VideoDropTargetWidget({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
     final eventBus = context.read<AppEventBus>();
+    final viewModel = context.read<VideoPlayerViewModel>();
+    final controller = context.read<VideoPlayerUiController>();
+    final isDragging = context.select<VideoPlayerUiController, bool>(
+      (c) => c.isDraggingFile,
+    );
+
     return DropTarget(
-      onDragEntered: (details) => setState(() => _isDragging = true),
-      onDragExited: (details) => setState(() => _isDragging = false),
+      onDragEntered: (details) => controller.isDraggingFile = true,
+      onDragExited: (details) => controller.isDraggingFile = false,
       onDragDone: (details) async {
-        setState(() => _isDragging = false);
+        controller.isDraggingFile = false;
         if (details.files.isNotEmpty) {
-          eventBus.publish(OpenFileAction(details.files.first.path));
+          final volume = viewModel.isMuted ? 0.0 : viewModel.volume;
+          eventBus.publish(
+            OpenFileCommand(details.files.first.path, volume: volume),
+          );
         }
       },
       child: Stack(
         children: [
-          widget.child,
-          if (_isDragging)
+          child,
+          if (isDragging)
             Container(
               color: Colors.black.withValues(alpha: 0.85),
               child: Center(

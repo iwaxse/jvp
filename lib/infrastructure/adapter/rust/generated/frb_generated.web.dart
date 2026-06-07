@@ -40,7 +40,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double dco_decode_f_64(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<MediaFileEntry> dco_decode_list_media_file_entry(dynamic raw);
+
+  @protected
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
+
+  @protected
+  MediaFileEntry dco_decode_media_file_entry(dynamic raw);
 
   @protected
   Thumbnail dco_decode_thumbnail(dynamic raw);
@@ -81,7 +90,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   double sse_decode_f_64(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<MediaFileEntry> sse_decode_list_media_file_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
+
+  @protected
+  MediaFileEntry sse_decode_media_file_entry(SseDeserializer deserializer);
 
   @protected
   Thumbnail sse_decode_thumbnail(SseDeserializer deserializer);
@@ -129,8 +149,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_f_64(double self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_media_file_entry(
+    List<MediaFileEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_8_strict(
     Uint8List self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_media_file_entry(
+    MediaFileEntry self,
     SseSerializer serializer,
   );
 

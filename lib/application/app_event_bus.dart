@@ -17,6 +17,7 @@
  */
 
 import 'dart:async';
+import '../domain/repository/video_repository.dart';
 
 abstract class AppEvent {
   final DateTime timestamp = DateTime.now();
@@ -39,32 +40,8 @@ class AppEventBus {
   }
 }
 
-class OpenFileAction extends AppEvent {
-  final String filePath;
-  OpenFileAction(this.filePath);
-}
-
-class TogglePlayAction extends AppEvent {}
-
-class ToggleLoopingAction extends AppEvent {}
-
-class ToggleMuteAction extends AppEvent {}
-
-class SetVolumeAction extends AppEvent {
-  final double volume;
-  SetVolumeAction(this.volume);
-}
-
-class StartScrubbingAction extends AppEvent {}
-
-class UpdateScrubValueAction extends AppEvent {
-  final double seconds;
-  UpdateScrubValueAction(this.seconds);
-}
-
-class EndScrubbingAction extends AppEvent {
-  final double seconds;
-  EndScrubbingAction(this.seconds);
+abstract class AppCommand extends AppEvent {
+  Future<void> execute(VideoRepository repository, AppEventBus eventBus);
 }
 
 class VideoLoadedEvent extends AppEvent {
@@ -72,11 +49,13 @@ class VideoLoadedEvent extends AppEvent {
   final int width;
   final int height;
   final double durationSecs;
+  final String sourcePath;
   VideoLoadedEvent({
     required this.textureId,
     required this.width,
     required this.height,
     required this.durationSecs,
+    required this.sourcePath,
   });
 }
 
@@ -97,6 +76,20 @@ class LoopingStateEvent extends AppEvent {
   LoopingStateEvent(this.isLooping);
 }
 
+class ABLoopStateEvent extends AppEvent {
+  final bool isEnabled;
+  final bool? restoreLooping;
+
+  ABLoopStateEvent({required this.isEnabled, this.restoreLooping});
+}
+
+class ABLoopRangeEvent extends AppEvent {
+  final double? startSecs;
+  final double? endSecs;
+
+  ABLoopRangeEvent({required this.startSecs, required this.endSecs});
+}
+
 class MuteStateEvent extends AppEvent {
   final bool isMuted;
   final double volume;
@@ -104,3 +97,18 @@ class MuteStateEvent extends AppEvent {
 }
 
 class ToggleTunerAction extends AppEvent {}
+
+class ScrubbingStateEvent extends AppEvent {
+  final bool isScrubbing;
+  final bool wasPlayingBeforeScrub;
+  ScrubbingStateEvent({
+    required this.isScrubbing,
+    required this.wasPlayingBeforeScrub,
+  });
+}
+
+class EffectStateEvent extends AppEvent {
+  final String effect;
+  final double intensity;
+  EffectStateEvent({required this.effect, required this.intensity});
+}

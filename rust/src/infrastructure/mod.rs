@@ -18,5 +18,6 @@
 
 pub mod audio;
 pub mod decoder;
+pub mod file_browser;
 pub mod renderer;
 pub mod state;

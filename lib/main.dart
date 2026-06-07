@@ -23,10 +23,18 @@ import 'package:provider/provider.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'infrastructure/adapter/rust/generated/frb_generated.dart';
 import 'infrastructure/repository/video_repository_impl.dart';
+import 'infrastructure/repository/playlist_repository_impl.dart';
 import 'application/app_event_bus.dart';
+import 'application/command_handler.dart';
+import 'application/commands/open_file_command.dart';
 import 'domain/repository/video_repository.dart';
-import 'presentation/view_models/video_player_view_model.dart';
-import 'presentation/video_player_view.dart';
+import 'domain/repository/playlist_repository.dart';
+import 'presentation/video_player/controller/media_library_controller.dart';
+import 'presentation/video_player/controller/effect_controller.dart';
+import 'presentation/video_player/controller/thumbnail_controller.dart';
+import 'presentation/video_player/controller/playlist_controller.dart';
+import 'presentation/video_player/video_player_view_model.dart';
+import 'presentation/video_player/video_player_view.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,12 +60,35 @@ void main(List<String> args) async {
   }
   final eventBus = AppEventBus();
   final repository = VideoRepositoryImpl();
+  final playlistRepository = PlaylistRepositoryImpl();
+
   final viewModel = VideoPlayerViewModel(repository, eventBus);
+
   runApp(
     MultiProvider(
       providers: [
         Provider<AppEventBus>.value(value: eventBus),
         Provider<VideoRepository>.value(value: repository),
+        Provider<PlaylistRepository>.value(value: playlistRepository),
+        Provider<CommandHandler>(
+          create: (_) => CommandHandler(repository, eventBus)..init(),
+          dispose: (_, handler) => handler.dispose(),
+          lazy: false,
+        ),
+        ChangeNotifierProvider<MediaLibraryController>(
+          create: (_) => MediaLibraryController(repository)..load(),
+        ),
+        ChangeNotifierProvider<EffectController>(
+          create: (_) => EffectController(eventBus)..init(),
+        ),
+        ChangeNotifierProvider<ThumbnailController>(
+          create: (_) => ThumbnailController(repository, eventBus)..init(),
+        ),
+        ChangeNotifierProvider<PlaylistController>(
+          create: (_) => PlaylistController(playlistRepository, eventBus)
+            ..load()
+            ..init(viewModel),
+        ),
         ChangeNotifierProvider<VideoPlayerViewModel>.value(value: viewModel),
       ],
       child: const MyApp(),
@@ -65,7 +96,7 @@ void main(List<String> args) async {
   );
   if (args.isNotEmpty) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      eventBus.publish(OpenFileAction(args[0]));
+      eventBus.publish(OpenFileCommand(args[0], volume: 0.0, autoplay: false));
     });
   }
 }

@@ -30,6 +30,9 @@ class MainFlutterWindow: NSWindow {
         self.setFrame(windowFrame, display: true)
 
         RegisterGeneratedPlugins(registry: flutterViewController)
+        
+        // Set minimum window size
+        self.minSize = NSSize(width: 900, height: 600)
 
         let channel = FlutterMethodChannel(name: "com.iwaxse.jvp/texture", binaryMessenger: flutterViewController.engine.binaryMessenger)
         self.channel = channel
@@ -64,6 +67,24 @@ class MainFlutterWindow: NSWindow {
             } else {
                 result(FlutterMethodNotImplemented)
             }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("JvpPlayerPtsChanged"),
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            if let userInfo = notification.userInfo, let pts = userInfo["pts"] as? Double {
+                self?.channel?.invokeMethod("ptsChanged", arguments: pts)
+            }
+        }
+
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("JvpPlayerCompleted"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.channel?.invokeMethod("completed", arguments: nil)
         }
 
         super.awakeFromNib()

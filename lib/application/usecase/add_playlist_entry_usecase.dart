@@ -1,0 +1,37 @@
+/*
+ * jvp (Jamy-chan Video Player)
+ * Copyright (C) 2026 iwaxse
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+import '../../../domain/models/video_models.dart';
+import '../../../domain/repository/playlist_repository.dart';
+
+class AddPlaylistEntryUseCase {
+  final PlaylistRepository _repository;
+  AddPlaylistEntryUseCase(this._repository);
+
+  Future<List<MediaFileEntry>> execute(
+    List<MediaFileEntry> currentPlaylist,
+    MediaFileEntry entry,
+  ) async {
+    if (currentPlaylist.any((item) => item.path == entry.path)) {
+      return currentPlaylist;
+    }
+    final newList = [...currentPlaylist, entry];
+    await _repository.savePlaylist(newList);
+    return newList;
+  }
+}

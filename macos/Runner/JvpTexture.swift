@@ -1,3 +1,21 @@
+/*
+ * jvp (Jamy-chan Video Player)
+ * Copyright (C) 2026 iwaxse
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import Cocoa
 import FlutterMacOS
 import AVFoundation
@@ -27,6 +45,7 @@ class JvpTexture: NSObject, FlutterTexture {
     private var pendingFrame: Bool = false
     private var isSeeking = false
     private var pendingSeekTime: Double?
+    private var hasPostedCompleted = false
     
     init(registry: FlutterTextureRegistry) {
         self.registry = registry
@@ -147,8 +166,23 @@ class JvpTexture: NSObject, FlutterTexture {
         fallbackInstance = nil
     }
 
+    private func clearPixelBuffer() {
+        guard let pb = pixelBuffer else { return }
+        CVPixelBufferLockBaseAddress(pb, [])
+        let height = CVPixelBufferGetHeight(pb)
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pb)
+        if let baseAddress = CVPixelBufferGetBaseAddress(pb) {
+            memset(baseAddress, 0, height * bytesPerRow)
+        }
+        CVPixelBufferUnlockBaseAddress(pb, [])
+        playerPixelBuffer = nil
+    }
+
     func openVideo(path: String) -> Bool {
         cleanupPlayer()
+        clearPixelBuffer()
+        renderCurrentFrame()
+        onFrameAvailable()
         
         let url: URL
         if path.hasPrefix("http://") || path.hasPrefix("https://") {
@@ -201,18 +235,23 @@ class JvpTexture: NSObject, FlutterTexture {
             self,
             selector: #selector(playerItemDidPlayToEndTime),
             name: .AVPlayerItemDidPlayToEndTime,
-            object: self.playerItem
+            object: nil
         )
         
         return true
     }
     
     @objc private func playerItemDidPlayToEndTime(notification: Notification) {
+        guard let item = notification.object as? AVPlayerItem, item == self.playerItem else { return }
         NotificationCenter.default.post(name: NSNotification.Name("JvpPlayerCompleted"), object: self)
     }
     
     func playVideo() {
         isPlayingState = true
+        hasPostedCompleted = false
+        if isCompleted() {
+            player?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
+        }
         player?.play()
     }
     
@@ -222,6 +261,7 @@ class JvpTexture: NSObject, FlutterTexture {
     }
     
     func seekVideo(toSeconds: Double, accurate: Bool) {
+        hasPostedCompleted = false
         guard let p = player else { return }
         if isSeeking {
             pendingSeekTime = toSeconds
@@ -303,6 +343,8 @@ class JvpTexture: NSObject, FlutterTexture {
             &cvTexture
         )
         if status == kCVReturnSuccess, let cvTex = cvTexture, let mtlTex = CVMetalTextureGetTexture(cvTex) {
+            self.sharedCvTexture = cvTex
+            self.sharedMtlTexture = mtlTex
             let ptr = Unmanaged.passUnretained(mtlTex).toOpaque()
             setOutputTextureCallback?(ptr, Int32(videoWidth), Int32(videoHeight))
             renderCallback?()
@@ -313,6 +355,19 @@ class JvpTexture: NSObject, FlutterTexture {
     func processNextFrame() {
         updateFrameBuffer()
         renderCurrentFrame()
+        let pts = getCurrentPts()
+        NotificationCenter.default.post(
+            name: NSNotification.Name("JvpPlayerPtsChanged"),
+            object: self,
+            userInfo: ["pts": pts]
+        )
+        if isCompleted() && !hasPostedCompleted {
+            hasPostedCompleted = true
+            NotificationCenter.default.post(
+                name: NSNotification.Name("JvpPlayerCompleted"),
+                object: self
+            )
+        }
     }
 
     func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
@@ -349,9 +404,8 @@ class JvpTexture: NSObject, FlutterTexture {
     func isCompleted() -> Bool {
         guard let item = playerItem else { return false }
         let current = CMTimeGetSeconds(item.currentTime())
-        let duration = CMTimeGetSeconds(item.duration)
-        if duration.isNaN || duration <= 0.0 { return false }
-        return current >= (duration - 0.1)
+        if videoDuration.isNaN || videoDuration <= 0.0 { return false }
+        return current >= (videoDuration - 0.1)
     }
     func generateThumbnail(atSeconds: Double) -> (data: Data, width: Int, height: Int)? {
         var activePlayer = player
@@ -513,3 +567,4 @@ public func jvp_player_register_update_input_callback(callback: @escaping @conve
 public func jvp_player_register_set_output_callback(callback: @escaping @convention(c) (UnsafeMutableRawPointer, Int32, Int32) -> Void) {
     setOutputTextureCallback = callback
 }
+

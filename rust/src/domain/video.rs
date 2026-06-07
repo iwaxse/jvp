@@ -32,3 +32,10 @@ pub struct Thumbnail {
     pub width: u32,
     pub height: u32,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct MediaFileEntry {
+    pub path: String,
+    pub display_name: String,
+    pub directory_path: String,
+}

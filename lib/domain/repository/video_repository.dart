@@ -29,4 +29,8 @@ abstract class VideoRepository {
   Future<Thumbnail?> getThumbnail(double timeSec);
   Future<void> setEffectIntensity(String effect, double intensity);
   Future<void> setVolume(double volume);
+  Future<bool> updateFrame();
+  Future<List<String>> getMediaSearchRoots();
+  Future<void> setMediaSearchRoots(List<String> roots);
+  Future<List<MediaFileEntry>> scanMediaFiles();
 }

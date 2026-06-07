@@ -1,6 +1,25 @@
+/*
+ * jvp (Jamy-chan Video Player)
+ * Copyright (C) 2026 iwaxse
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 use crate::domain::video::{Thumbnail, VideoInfo};
 use crate::frb_generated::StreamSink;
 use crate::infrastructure::decoder::VideoDecoder;
+use crate::infrastructure::file_browser::init_media_search_roots;
 use crate::infrastructure::state::{
     ACTIVE_SHADER, DECODER, EFFECTS, IS_PLAYING, RENDER_STATE, SHADER_INTENSITIES,
     THUMBNAIL_DECODER,
@@ -40,6 +59,7 @@ impl PlaybackService {
         let _ = Lazy::force(&RENDER_STATE);
         let _ = Lazy::force(&ACTIVE_SHADER);
         let _ = Lazy::force(&EFFECTS);
+        init_media_search_roots();
     }
 
     pub fn start_player_event_stream(sink: StreamSink<String>) {

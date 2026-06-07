@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import 'dart:async';
 import 'package:flutter/services.dart';
 import '../../domain/models/video_models.dart';
 import '../../domain/repository/video_repository.dart';
@@ -23,9 +24,29 @@ import '../../infrastructure/adapter/rust/generated/api/simple.dart' as rust;
 
 class VideoRepositoryImpl implements VideoRepository {
   static const _channel = MethodChannel('com.iwaxse.jvp/texture');
+  Stream<String>? _mergedStream;
 
   @override
-  Stream<String> get playerEventStream => rust.startPlayerEventStream();
+  Stream<String> get playerEventStream {
+    if (_mergedStream == null) {
+      final controller = StreamController<String>.broadcast();
+      rust.startPlayerEventStream().listen(
+        (event) => controller.add(event),
+        onError: (err) => controller.addError(err),
+        onDone: () => controller.close(),
+      );
+      _channel.setMethodCallHandler((call) async {
+        if (call.method == 'ptsChanged') {
+          final pts = call.arguments as double;
+          controller.add('{"type": "frame", "data": {"pts_sec": $pts}}');
+        } else if (call.method == 'completed') {
+          controller.add('{"type": "completed", "data": {}}');
+        }
+      });
+      _mergedStream = controller.stream;
+    }
+    return _mergedStream!;
+  }
 
   @override
   Future<VideoInfo> openVideo(String path) async {
@@ -86,5 +107,34 @@ class VideoRepositoryImpl implements VideoRepository {
   @override
   Future<void> setVolume(double volume) async {
     await rust.setVolume(volume: volume);
+  }
+
+  @override
+  Future<bool> updateFrame() async {
+    return await rust.updateFrame();
+  }
+
+  @override
+  Future<List<String>> getMediaSearchRoots() async {
+    return await rust.getMediaSearchRoots();
+  }
+
+  @override
+  Future<void> setMediaSearchRoots(List<String> roots) async {
+    await rust.setMediaSearchRoots(roots: roots);
+  }
+
+  @override
+  Future<List<MediaFileEntry>> scanMediaFiles() async {
+    final files = await rust.scanMediaFiles();
+    return files
+        .map(
+          (file) => MediaFileEntry(
+            path: file.path,
+            displayName: file.displayName,
+            directoryPath: file.directoryPath,
+          ),
+        )
+        .toList();
   }
 }
