@@ -21,7 +21,7 @@ import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../../application/app_event_bus.dart';
 import '../../../application/commands/open_file_command.dart';
-import '../video_player_view_controller.dart';
+import '../controller/video_player_ui_controller.dart';
 import '../video_player_view_model.dart';
 
 class VideoDropTargetWidget extends StatelessWidget {
@@ -32,8 +32,8 @@ class VideoDropTargetWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final eventBus = context.read<AppEventBus>();
     final viewModel = context.read<VideoPlayerViewModel>();
-    final controller = context.read<VideoPlayerViewController>();
-    final isDragging = context.select<VideoPlayerViewController, bool>(
+    final controller = context.read<VideoPlayerUiController>();
+    final isDragging = context.select<VideoPlayerUiController, bool>(
       (c) => c.isDraggingFile,
     );
 

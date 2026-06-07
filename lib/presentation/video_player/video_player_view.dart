@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/app_event_bus.dart';
 import '../../application/commands/toggle_play_command.dart';
-import 'video_player_view_controller.dart';
+import 'controller/video_player_ui_controller.dart';
 import 'video_player_view_model.dart';
 import 'components/right_sidebar_panel_widget.dart';
 import 'components/video_control_bar_widget.dart';
@@ -33,9 +33,9 @@ class VideoPlayerView extends StatelessWidget {
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
     final eventBus = context.read<AppEventBus>();
-    return ChangeNotifierProvider<VideoPlayerViewController>(
-      create: (context) => VideoPlayerViewController(context, viewModel),
-      child: Consumer<VideoPlayerViewController>(
+    return ChangeNotifierProvider<VideoPlayerUiController>(
+      create: (context) => VideoPlayerUiController(context, viewModel),
+      child: Consumer<VideoPlayerUiController>(
         builder: (context, controller, _) {
           final isLoaded = context.select<VideoPlayerViewModel, bool>(
             (vm) => vm.isLoaded,
@@ -49,15 +49,15 @@ class VideoPlayerView extends StatelessWidget {
           final height = context.select<VideoPlayerViewModel, int>(
             (vm) => vm.height,
           );
-          final showSideMenu = context.select<VideoPlayerViewController, bool>(
+          final showSideMenu = context.select<VideoPlayerUiController, bool>(
             (c) => c.showSideMenu,
           );
-          final sideMenuTabIndex = context
-              .select<VideoPlayerViewController, int>(
-                (c) => c.sideMenuTabIndex,
-              );
-          final showControlBar = context
-              .select<VideoPlayerViewController, bool>((c) => c.showControlBar);
+          final sideMenuTabIndex = context.select<VideoPlayerUiController, int>(
+            (c) => c.sideMenuTabIndex,
+          );
+          final showControlBar = context.select<VideoPlayerUiController, bool>(
+            (c) => c.showControlBar,
+          );
           const sidePanelWidth = 380.0;
 
           return Scaffold(
