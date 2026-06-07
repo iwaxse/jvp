@@ -23,23 +23,46 @@ class EndScrubbingCommand extends AppCommand {
   final double seconds;
   final double durationSecs;
   final bool wasPlayingBeforeScrub;
+  final bool isAbLooping;
+  final double? currentAbLoopStartSecs;
+  final double? currentAbLoopEndSecs;
 
   EndScrubbingCommand({
     required this.seconds,
     required this.durationSecs,
     required this.wasPlayingBeforeScrub,
+    required this.isAbLooping,
+    required this.currentAbLoopStartSecs,
+    required this.currentAbLoopEndSecs,
   });
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    final clampedSeconds = seconds.clamp(0.0, durationSecs - 0.01);
-    // 更新を即座に反映させて snap-back を防ぐ
+    final clampedSeconds = seconds.clamp(0.0, durationSecs - 0.01).toDouble();
     eventBus.publish(PlaybackPositionEvent(clampedSeconds));
     eventBus.publish(
       ScrubbingStateEvent(isScrubbing: false, wasPlayingBeforeScrub: false),
     );
     await repository.seek(clampedSeconds, accurate: true);
     await repository.updateTexture();
+
+    if (isAbLooping) {
+      if (currentAbLoopStartSecs == null) {
+        eventBus.publish(
+          ABLoopRangeEvent(startSecs: clampedSeconds, endSecs: null),
+        );
+      } else if (currentAbLoopEndSecs == null) {
+        final startSecs = currentAbLoopStartSecs!;
+        var start = clampedSeconds < startSecs ? clampedSeconds : startSecs;
+        var end = clampedSeconds < startSecs ? startSecs : clampedSeconds;
+        const minGapSecs = 0.05;
+        if ((end - start) < minGapSecs) {
+          end = (start + minGapSecs).clamp(0.0, durationSecs - 0.01).toDouble();
+          start = (end - minGapSecs).clamp(0.0, end).toDouble();
+        }
+        eventBus.publish(ABLoopRangeEvent(startSecs: start, endSecs: end));
+      }
+    }
 
     if (wasPlayingBeforeScrub) {
       await repository.setPlaying(true);

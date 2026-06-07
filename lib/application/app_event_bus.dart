@@ -76,6 +76,20 @@ class LoopingStateEvent extends AppEvent {
   LoopingStateEvent(this.isLooping);
 }
 
+class ABLoopStateEvent extends AppEvent {
+  final bool isEnabled;
+  final bool? restoreLooping;
+
+  ABLoopStateEvent({required this.isEnabled, this.restoreLooping});
+}
+
+class ABLoopRangeEvent extends AppEvent {
+  final double? startSecs;
+  final double? endSecs;
+
+  ABLoopRangeEvent({required this.startSecs, required this.endSecs});
+}
+
 class MuteStateEvent extends AppEvent {
   final bool isMuted;
   final double volume;

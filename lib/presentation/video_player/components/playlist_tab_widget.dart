@@ -90,10 +90,8 @@ class PlaylistTabWidget extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 itemCount: playlist.length,
                 onReorder: playlistController.reorder,
-                proxyDecorator: (child, index, animation) => Material(
-                  color: Colors.transparent,
-                  child: child,
-                ),
+                proxyDecorator: (child, index, animation) =>
+                    Material(color: Colors.transparent, child: child),
                 itemBuilder: (context, index) {
                   final entry = playlist[index];
                   final isCurrent = currentIndex == index;
@@ -112,10 +110,8 @@ class PlaylistTabWidget extends StatelessWidget {
                       ),
                     ),
                     child: ListTile(
-                      onTap: () => playlistController.playIndex(
-                        index,
-                        viewModel.volume,
-                      ),
+                      onTap: () =>
+                          playlistController.playIndex(index, viewModel.volume),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -136,8 +132,9 @@ class PlaylistTabWidget extends StatelessWidget {
                               ? const Color(0xFFFFF2CC)
                               : const Color(0xFFEFEFEF),
                           fontSize: 13,
-                          fontWeight:
-                              isCurrent ? FontWeight.w600 : FontWeight.w500,
+                          fontWeight: isCurrent
+                              ? FontWeight.w600
+                              : FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
@@ -177,7 +174,6 @@ class PlaylistTabWidget extends StatelessWidget {
                 },
               ),
             ),
-
         ],
       ),
     );

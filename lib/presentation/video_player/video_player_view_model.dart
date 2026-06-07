@@ -32,6 +32,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   bool _isLoaded = false;
   bool _isPlaying = false;
   bool _isLooping = false;
+  bool _isAbLooping = false;
   double _durationSecs = 0.0;
   double _currentPosSecs = 0.0;
   int? _textureId;
@@ -42,6 +43,10 @@ class VideoPlayerViewModel extends ChangeNotifier {
   bool _isMuted = true;
   bool _isScrubbing = false;
   bool _wasPlayingBeforeScrub = false;
+  double? _abLoopStartSecs;
+  double? _abLoopEndSecs;
+  bool _restoreLoopingAfterAbLoop = false;
+  bool _isRestartingAbLoop = false;
   StreamSubscription<String>? _eventSubscription;
   double _realTimeFps = 0.0;
   String? _currentMediaPath;
@@ -49,6 +54,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   bool get isLoaded => _isLoaded;
   bool get isPlaying => _isPlaying;
   bool get isLooping => _isLooping;
+  bool get isAbLooping => _isAbLooping;
   bool get isScrubbing => _isScrubbing;
   double get durationSecs => _durationSecs;
   double get currentPosSecs => _currentPosSecs;
@@ -60,6 +66,9 @@ class VideoPlayerViewModel extends ChangeNotifier {
   double get volume => _volume;
   bool get isMuted => _isMuted;
   bool get wasPlayingBeforeScrub => _wasPlayingBeforeScrub;
+  double? get abLoopStartSecs => _abLoopStartSecs;
+  double? get abLoopEndSecs => _abLoopEndSecs;
+  bool get hasAbLoopRange => _abLoopStartSecs != null && _abLoopEndSecs != null;
   String? get currentMediaPath => _currentMediaPath;
 
   VideoPlayerViewModel(this._repository, this._eventBus) {
@@ -87,6 +96,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
             final pts = (frameData['pts_sec'] as num).toDouble();
             if (pts >= 0.0) {
               _eventBus.publish(PlaybackPositionEvent(pts));
+              _handleAbLoopFrame(pts);
             }
             break;
           case 'renderFps':
@@ -117,11 +127,19 @@ class VideoPlayerViewModel extends ChangeNotifier {
         _currentMediaPath = event.sourcePath;
         _isLoaded = true;
         _currentPosSecs = 0.0;
+        _isAbLooping = false;
+        _abLoopStartSecs = null;
+        _abLoopEndSecs = null;
+        _restoreLoopingAfterAbLoop = false;
         notifyListeners();
       } else if (event is VideoUnloadedEvent) {
         _isLoaded = false;
         _isPlaying = false;
         _textureId = null;
+        _isAbLooping = false;
+        _abLoopStartSecs = null;
+        _abLoopEndSecs = null;
+        _restoreLoopingAfterAbLoop = false;
         notifyListeners();
       } else if (event is PlaybackPositionEvent) {
         _currentPosSecs = event.position;
@@ -131,6 +149,23 @@ class VideoPlayerViewModel extends ChangeNotifier {
         notifyListeners();
       } else if (event is LoopingStateEvent) {
         _isLooping = event.isLooping;
+        notifyListeners();
+      } else if (event is ABLoopStateEvent) {
+        _isAbLooping = event.isEnabled;
+        if (_isAbLooping) {
+          _restoreLoopingAfterAbLoop = event.restoreLooping ?? _isLooping;
+          _isLooping = false;
+          _abLoopStartSecs = null;
+          _abLoopEndSecs = null;
+        } else {
+          _isLooping = _restoreLoopingAfterAbLoop;
+          _abLoopStartSecs = null;
+          _abLoopEndSecs = null;
+        }
+        notifyListeners();
+      } else if (event is ABLoopRangeEvent) {
+        _abLoopStartSecs = event.startSecs;
+        _abLoopEndSecs = event.endSecs;
         notifyListeners();
       } else if (event is MuteStateEvent) {
         _isMuted = event.isMuted;
@@ -146,6 +181,10 @@ class VideoPlayerViewModel extends ChangeNotifier {
 
   Future<void> _handleCompleted() async {
     if (_isScrubbing) return;
+    if (_isAbLooping && hasAbLoopRange) {
+      await _restartAbLoop();
+      return;
+    }
     if (_isLooping) {
       await _repository.seek(0.0, accurate: true);
       await _repository.updateTexture();
@@ -155,6 +194,35 @@ class VideoPlayerViewModel extends ChangeNotifier {
       return;
     }
     _eventBus.publish(PlaybackCompletedEvent());
+  }
+
+  void _handleAbLoopFrame(double position) {
+    if (!_isAbLooping ||
+        !hasAbLoopRange ||
+        _isScrubbing ||
+        _isRestartingAbLoop) {
+      return;
+    }
+    final endSecs = _abLoopEndSecs!;
+    if (position < (endSecs - 0.01)) {
+      return;
+    }
+    unawaited(_restartAbLoop());
+  }
+
+  Future<void> _restartAbLoop() async {
+    if (_isRestartingAbLoop || _abLoopStartSecs == null) return;
+    _isRestartingAbLoop = true;
+    try {
+      final startSecs = _abLoopStartSecs!;
+      await _repository.seek(startSecs, accurate: true);
+      await _repository.updateTexture();
+      await _repository.setPlaying(true);
+      _eventBus.publish(PlaybackPositionEvent(startSecs));
+      _eventBus.publish(PlaybackStateEvent(true));
+    } finally {
+      _isRestartingAbLoop = false;
+    }
   }
 
   Future<void> openMediaFile(String path) async {

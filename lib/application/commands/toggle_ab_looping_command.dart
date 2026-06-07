@@ -19,21 +19,26 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class UpdateScrubValueCommand extends AppCommand {
-  final double seconds;
-  final double durationSecs;
-  final bool isScrubbing;
+class ToggleAbLoopingCommand extends AppCommand {
+  final bool currentIsAbLooping;
+  final bool currentIsLooping;
 
-  UpdateScrubValueCommand(
-    this.seconds, {
-    required this.durationSecs,
-    required this.isScrubbing,
+  ToggleAbLoopingCommand({
+    required this.currentIsAbLooping,
+    required this.currentIsLooping,
   });
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    final clampedSeconds = seconds.clamp(0.0, durationSecs - 0.01).toDouble();
-    await repository.seek(clampedSeconds, accurate: !isScrubbing);
-    await repository.updateTexture();
+    final nextEnabled = !currentIsAbLooping;
+    eventBus.publish(
+      ABLoopStateEvent(
+        isEnabled: nextEnabled,
+        restoreLooping: nextEnabled ? currentIsLooping : null,
+      ),
+    );
+    if (nextEnabled) {
+      eventBus.publish(LoopingStateEvent(false));
+    }
   }
 }

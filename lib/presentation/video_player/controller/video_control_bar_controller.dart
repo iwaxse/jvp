@@ -76,7 +76,9 @@ class VideoControlBarController extends ChangeNotifier {
         sliderKey.currentContext?.findRenderObject() as RenderBox?;
     if (sliderBox == null) return;
 
-    final double fraction = max > 0 ? (value / max).clamp(0.0, 1.0) : 0.0;
+    final double fraction = max > 0
+        ? (value / max).clamp(0.0, 1.0).toDouble()
+        : 0.0;
     final Offset sliderTopLeft = sliderBox.localToGlobal(Offset.zero);
 
     _thumbnailX = sliderTopLeft.dx + (sliderBox.size.width * fraction);
@@ -191,7 +193,7 @@ class VideoControlBarController extends ChangeNotifier {
       final localX = box.globalToLocal(event.position).dx;
       final usableWidth = box.size.width;
       final val = (localX / usableWidth) * max;
-      final hoverValue = val.clamp(0.0, max);
+      final hoverValue = val.clamp(0.0, max).toDouble();
       showThumbnail(hoverValue, max, event.position);
     }
   }
