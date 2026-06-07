@@ -103,7 +103,7 @@ class VideoPlayerView extends StatelessWidget {
                       curve: Curves.easeOutCubic,
                       left: 24,
                       right: showSideMenu ? sidePanelWidth + 24 : 24,
-                      bottom: showControlBar ? 24 : -100,
+                      bottom: showControlBar ? 24 : -150,
                       child: const VideoControlBarWidget(),
                     ),
                     AnimatedPositioned(
