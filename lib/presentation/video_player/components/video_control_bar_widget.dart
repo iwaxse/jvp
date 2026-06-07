@@ -17,6 +17,7 @@
  */
 
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../application/app_event_bus.dart';
@@ -272,19 +273,24 @@ class _TimeSlider extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
-                  _formatDuration(displayValue),
-                  style: const TextStyle(
-                    color: Color(0xFF888888),
-                    fontSize: 12,
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    _formatDuration(displayValue),
+                    style: const TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 12,
+                      fontFeatures: [ui.FontFeature.tabularFigures()],
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
                 Expanded(
                   child: MouseRegion(
                     onHover: isLoaded
-                        ? (event) => controller.handleHover(event, max)
+                        ? (event) => ctrl.handleHover(event, max)
                         : null,
-                    onExit: (_) => controller.removeThumbnail(),
+                    onExit: (_) => ctrl.removeThumbnail(),
                     child: SizedBox(
                       height: 34,
                       child: Stack(
@@ -307,14 +313,14 @@ class _TimeSlider extends StatelessWidget {
                                   : SliderComponentShape.noThumb,
                             ),
                             child: Slider(
-                              key: controller.sliderKey,
-                              focusNode: controller.sliderFocusNode,
+                              key: ctrl.sliderKey,
+                              focusNode: ctrl.sliderFocusNode,
                               value: displayValue,
                               max: max,
                               onChangeStart: isLoaded
                                   ? (val) {
-                                      controller.removeThumbnail();
-                                      controller.localScrubValue = val;
+                                      ctrl.removeThumbnail();
+                                      ctrl.localScrubValue = val;
                                       eventBus.publish(
                                         StartScrubbingCommand(
                                           currentIsPlaying: isPlaying,
@@ -324,7 +330,7 @@ class _TimeSlider extends StatelessWidget {
                                   : null,
                               onChanged: isLoaded
                                   ? (val) {
-                                      controller.localScrubValue = val;
+                                      ctrl.localScrubValue = val;
                                       eventBus.publish(
                                         UpdateScrubValueCommand(
                                           val,
@@ -345,7 +351,7 @@ class _TimeSlider extends StatelessWidget {
                                               .wasPlayingBeforeScrub,
                                         ),
                                       );
-                                      controller.localScrubValue = null;
+                                      ctrl.localScrubValue = null;
                                     }
                                   : null,
                             ),
@@ -364,11 +370,16 @@ class _TimeSlider extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(
-                  _formatDuration(durationSecs),
-                  style: const TextStyle(
-                    color: Color(0xFF888888),
-                    fontSize: 12,
+                SizedBox(
+                  width: 48,
+                  child: Text(
+                    _formatDuration(durationSecs),
+                    style: const TextStyle(
+                      color: Color(0xFF888888),
+                      fontSize: 12,
+                      fontFeatures: [ui.FontFeature.tabularFigures()],
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
