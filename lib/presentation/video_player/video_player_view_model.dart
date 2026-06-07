@@ -155,8 +155,9 @@ class VideoPlayerViewModel extends ChangeNotifier {
         if (_isAbLooping) {
           _restoreLoopingAfterAbLoop = event.restoreLooping ?? _isLooping;
           _isLooping = false;
-          _abLoopStartSecs = null;
-          _abLoopEndSecs = null;
+          // Initialize A-B loop range to [0, duration]
+          _abLoopStartSecs = 0.0;
+          _abLoopEndSecs = _durationSecs;
         } else {
           _isLooping = _restoreLoopingAfterAbLoop;
           _abLoopStartSecs = null;

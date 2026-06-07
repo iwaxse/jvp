@@ -19,30 +19,32 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class EndScrubbingCommand extends AppCommand {
-  final double seconds;
-  final double durationSecs;
-  final bool wasPlayingBeforeScrub;
+class UpdateAbLoopRangeCommand extends AppCommand {
+  final double? startSecs;
+  final double? endSecs;
+  final bool seekToPoint;
+  final bool isStartPoint;
+  final bool accurate;
 
-  EndScrubbingCommand({
-    required this.seconds,
-    required this.durationSecs,
-    required this.wasPlayingBeforeScrub,
+  UpdateAbLoopRangeCommand({
+    this.startSecs,
+    this.endSecs,
+    this.seekToPoint = false,
+    this.isStartPoint = true,
+    this.accurate = true,
   });
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    final clampedSeconds = seconds.clamp(0.0, durationSecs - 0.01).toDouble();
-    eventBus.publish(PlaybackPositionEvent(clampedSeconds));
-    eventBus.publish(
-      ScrubbingStateEvent(isScrubbing: false, wasPlayingBeforeScrub: false),
-    );
-    await repository.seek(clampedSeconds, accurate: true);
-    await repository.updateTexture();
+    eventBus.publish(ABLoopRangeEvent(startSecs: startSecs, endSecs: endSecs));
 
-    if (wasPlayingBeforeScrub) {
-      await repository.setPlaying(true);
-      eventBus.publish(PlaybackStateEvent(true));
+    if (seekToPoint) {
+      final target = isStartPoint ? startSecs : endSecs;
+      if (target != null) {
+        await repository.seek(target, accurate: accurate);
+        await repository.updateTexture();
+        eventBus.publish(PlaybackPositionEvent(target));
+      }
     }
   }
 }

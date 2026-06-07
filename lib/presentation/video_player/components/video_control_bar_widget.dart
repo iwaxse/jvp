@@ -28,6 +28,7 @@ import '../../../application/commands/set_volume_command.dart';
 import '../../../application/commands/start_scrubbing_command.dart';
 import '../../../application/commands/update_scrub_value_command.dart';
 import '../../../application/commands/end_scrubbing_command.dart';
+import '../../../application/commands/update_ab_loop_range_command.dart';
 import '../video_player_view_model.dart';
 import '../controller/video_control_bar_controller.dart';
 
@@ -280,19 +281,6 @@ class _TimeSlider extends StatelessWidget {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          if (isAbLooping)
-                            Positioned.fill(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 2,
-                                ),
-                                child: _AbLoopRangeLayer(
-                                  max: max,
-                                  startSecs: abLoopStartSecs,
-                                  endSecs: abLoopEndSecs,
-                                ),
-                              ),
-                            ),
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
                               trackHeight: 4,
@@ -335,15 +323,21 @@ class _TimeSlider extends StatelessWidget {
                                     wasPlayingBeforeScrub: context
                                         .read<VideoPlayerViewModel>()
                                         .wasPlayingBeforeScrub,
-                                    isAbLooping: isAbLooping,
-                                    currentAbLoopStartSecs: abLoopStartSecs,
-                                    currentAbLoopEndSecs: abLoopEndSecs,
                                   ),
                                 );
                                 ctrl.localScrubValue = null;
                               },
                             ),
                           ),
+                          if (isAbLooping)
+                            Positioned.fill(
+                              child: _AbLoopRangeLayer(
+                                max: max,
+                                startSecs: abLoopStartSecs,
+                                endSecs: abLoopEndSecs,
+                                isPlaying: isPlaying,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -392,9 +386,9 @@ class _TimeSlider extends StatelessWidget {
   }
 
   String _abLoopStatusText() {
-    if (abLoopStartSecs == null) return 'A-B loop: A pointを決めてね';
-    if (abLoopEndSecs == null) return 'A-B loop: B pointを決めてね';
-    return 'A-B loop: ${_formatDuration(abLoopStartSecs!)} - ${_formatDuration(abLoopEndSecs!)}';
+    final start = abLoopStartSecs ?? 0.0;
+    final end = abLoopEndSecs ?? durationSecs;
+    return 'A-B loop: ${_formatDuration(start)} - ${_formatDuration(end)}';
   }
 
   String _formatDuration(double seconds) {
@@ -409,11 +403,13 @@ class _AbLoopRangeLayer extends StatelessWidget {
   final double max;
   final double? startSecs;
   final double? endSecs;
+  final bool isPlaying;
 
   const _AbLoopRangeLayer({
     required this.max,
     required this.startSecs,
     required this.endSecs,
+    required this.isPlaying,
   });
 
   @override
@@ -422,40 +418,46 @@ class _AbLoopRangeLayer extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final eventBus = context.read<AppEventBus>();
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
+        // Adjust for Slider padding (approx 12px each side)
+        const horizontalPadding = 12.0;
+        final trackWidth = width - (horizontalPadding * 2);
         final safeMax = max > 0 ? max : 1.0;
-        final start = (startSecs ?? endSecs ?? 0.0).clamp(0.0, safeMax);
-        final end = (endSecs ?? startSecs ?? start).clamp(0.0, safeMax);
-        final leftFraction = math.min(start, end) / safeMax;
-        final rightFraction = math.max(start, end) / safeMax;
-        final left = width * leftFraction;
-        final rangeWidth = math.max(
-          2.0,
-          width * (rightFraction - leftFraction),
-        );
-        final hasRange = startSecs != null && endSecs != null;
+
+        final start = (startSecs ?? 0.0).clamp(0.0, safeMax);
+        final end = (endSecs ?? safeMax).clamp(0.0, safeMax);
+
+        final leftPos = horizontalPadding + (trackWidth * (start / safeMax));
+        final rightPos = horizontalPadding + (trackWidth * (end / safeMax));
+
+        final rangeWidth = math.max(2.0, rightPos - leftPos);
 
         return Stack(
+          clipBehavior: Clip.none,
           children: [
             Positioned(
-              left: 0,
-              right: 0,
+              left: horizontalPadding,
+              right: horizontalPadding,
               top: 14,
-              child: Container(
-                height: 6,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2B2414).withValues(alpha: 0.72),
-                  borderRadius: BorderRadius.circular(999),
+              child: IgnorePointer(
+                child: Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2B2414).withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
                 ),
               ),
             ),
-            if (hasRange)
-              Positioned(
-                left: left,
-                top: 13,
-                width: rangeWidth,
+            Positioned(
+              left: leftPos,
+              top: 13,
+              width: rangeWidth,
+              child: IgnorePointer(
                 child: Container(
                   height: 8,
                   decoration: BoxDecoration(
@@ -468,17 +470,123 @@ class _AbLoopRangeLayer extends StatelessWidget {
                   ),
                 ),
               ),
-            Positioned(
-              left: math.max(0.0, left - 4),
-              top: 11,
-              child: _AbLoopPin(label: 'A', active: startSecs != null),
             ),
-            if (hasRange)
-              Positioned(
-                left: math.max(0.0, (width * rightFraction) - 4),
-                top: 11,
-                child: const _AbLoopPin(label: 'B', active: true),
+            // Draggable Pin A
+            Positioned(
+              left: leftPos - 12,
+              top: 0,
+              bottom: 0,
+              width: 24,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (_) {
+                  eventBus.publish(
+                    StartScrubbingCommand(currentIsPlaying: isPlaying),
+                  );
+                },
+                onHorizontalDragUpdate: (details) {
+                  final renderBox = context.findRenderObject() as RenderBox;
+                  final localX = renderBox
+                      .globalToLocal(details.globalPosition)
+                      .dx;
+                  final newVal =
+                      ((localX - horizontalPadding) / trackWidth * safeMax)
+                          .clamp(0.0, end - 0.01);
+                  eventBus.publish(
+                    UpdateAbLoopRangeCommand(
+                      startSecs: newVal,
+                      endSecs: end,
+                      seekToPoint: true,
+                      isStartPoint: true,
+                      accurate: false,
+                    ),
+                  );
+                },
+                onHorizontalDragEnd: (_) {
+                  final viewModel = context.read<VideoPlayerViewModel>();
+                  eventBus.publish(
+                    UpdateAbLoopRangeCommand(
+                      startSecs: start,
+                      endSecs: end,
+                      seekToPoint: true,
+                      isStartPoint: true,
+                      accurate: true,
+                    ),
+                  );
+                  eventBus.publish(
+                    EndScrubbingCommand(
+                      seconds: start,
+                      durationSecs: max,
+                      wasPlayingBeforeScrub: viewModel.wasPlayingBeforeScrub,
+                    ),
+                  );
+                },
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 11),
+                    child: _AbLoopPin(label: 'A', active: startSecs != null),
+                  ),
+                ),
               ),
+            ),
+            // Draggable Pin B
+            Positioned(
+              left: rightPos - 12,
+              top: 0,
+              bottom: 0,
+              width: 24,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onHorizontalDragStart: (_) {
+                  eventBus.publish(
+                    StartScrubbingCommand(currentIsPlaying: isPlaying),
+                  );
+                },
+                onHorizontalDragUpdate: (details) {
+                  final renderBox = context.findRenderObject() as RenderBox;
+                  final localX = renderBox
+                      .globalToLocal(details.globalPosition)
+                      .dx;
+                  final newVal =
+                      ((localX - horizontalPadding) / trackWidth * safeMax)
+                          .clamp(start + 0.01, safeMax);
+                  eventBus.publish(
+                    UpdateAbLoopRangeCommand(
+                      startSecs: start,
+                      endSecs: newVal,
+                      seekToPoint: true,
+                      isStartPoint: false,
+                      accurate: false,
+                    ),
+                  );
+                },
+                onHorizontalDragEnd: (_) {
+                  final viewModel = context.read<VideoPlayerViewModel>();
+                  eventBus.publish(
+                    UpdateAbLoopRangeCommand(
+                      startSecs: start,
+                      endSecs: end,
+                      seekToPoint: true,
+                      isStartPoint: false,
+                      accurate: true,
+                    ),
+                  );
+                  eventBus.publish(
+                    EndScrubbingCommand(
+                      seconds: end,
+                      durationSecs: max,
+                      wasPlayingBeforeScrub: viewModel.wasPlayingBeforeScrub,
+                    ),
+                  );
+                },
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 11),
+                    child: const _AbLoopPin(label: 'B', active: true),
+                  ),
+                ),
+              ),
+            ),
           ],
         );
       },
