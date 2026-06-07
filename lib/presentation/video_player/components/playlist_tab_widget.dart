@@ -86,15 +86,20 @@ class PlaylistTabWidget extends StatelessWidget {
             )
           else
             Expanded(
-              child: ListView.separated(
+              child: ReorderableListView.builder(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 itemCount: playlist.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: 1, color: Color(0xFF232323)),
+                onReorder: playlistController.reorder,
+                proxyDecorator: (child, index, animation) => Material(
+                  color: Colors.transparent,
+                  child: child,
+                ),
                 itemBuilder: (context, index) {
                   final entry = playlist[index];
                   final isCurrent = currentIndex == index;
                   return Container(
+                    key: ValueKey(entry.path),
+                    margin: const EdgeInsets.only(bottom: 1),
                     decoration: BoxDecoration(
                       color: isCurrent
                           ? const Color(0xFF1B1B1B)
@@ -107,8 +112,10 @@ class PlaylistTabWidget extends StatelessWidget {
                       ),
                     ),
                     child: ListTile(
-                      onTap: () =>
-                          playlistController.playIndex(index, viewModel.volume),
+                      onTap: () => playlistController.playIndex(
+                        index,
+                        viewModel.volume,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -129,9 +136,8 @@ class PlaylistTabWidget extends StatelessWidget {
                               ? const Color(0xFFFFF2CC)
                               : const Color(0xFFEFEFEF),
                           fontSize: 13,
-                          fontWeight: isCurrent
-                              ? FontWeight.w600
-                              : FontWeight.w500,
+                          fontWeight:
+                              isCurrent ? FontWeight.w600 : FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
@@ -143,20 +149,35 @@ class PlaylistTabWidget extends StatelessWidget {
                           fontSize: 11,
                         ),
                       ),
-                      trailing: IconButton(
-                        onPressed: () => playlistController.remove(entry.path),
-                        icon: const Icon(
-                          Icons.remove_circle_outline,
-                          color: Color(0xFFB56B6B),
-                          size: 20,
-                        ),
-                        tooltip: 'Remove',
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: () =>
+                                playlistController.remove(entry.path),
+                            icon: const Icon(
+                              Icons.remove_circle_outline,
+                              color: Color(0xFFB56B6B),
+                              size: 20,
+                            ),
+                            tooltip: 'Remove',
+                          ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: const Icon(
+                              Icons.drag_handle,
+                              color: Color(0xFF444444),
+                              size: 20,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 },
               ),
             ),
+
         ],
       ),
     );

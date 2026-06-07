@@ -77,6 +77,16 @@ class PlaylistController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> reorder(int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = _playlist.removeAt(oldIndex);
+    _playlist.insert(newIndex, item);
+    notifyListeners();
+    await _playlistRepository.savePlaylist(_playlist);
+  }
+
   Future<bool> playNext(String? currentPath, double volume) async {
     return await _playNextUseCase.execute(
       playlist: _playlist,
