@@ -93,6 +93,7 @@ class VideoControlBarWidget extends StatelessWidget {
                       isAbLooping: isAbLooping,
                       abLoopStartSecs: abLoopStartSecs,
                       abLoopEndSecs: abLoopEndSecs,
+                      isLoaded: isLoaded,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -105,16 +106,18 @@ class VideoControlBarWidget extends StatelessWidget {
                                 isPlaying
                                     ? Icons.pause_circle_outline
                                     : Icons.play_circle_outline,
-                                color: Colors.white,
+                                color: isLoaded ? Colors.white : Colors.white24,
                                 size: 32,
                               ),
-                              onPressed: () {
-                                eventBus.publish(
-                                  TogglePlayCommand(
-                                    currentIsPlaying: isPlaying,
-                                  ),
-                                );
-                              },
+                              onPressed: isLoaded
+                                  ? () {
+                                      eventBus.publish(
+                                        TogglePlayCommand(
+                                          currentIsPlaying: isPlaying,
+                                        ),
+                                      );
+                                    }
+                                  : null,
                             ),
                             const SizedBox(width: 8),
                             IconButton(
@@ -123,27 +126,29 @@ class VideoControlBarWidget extends StatelessWidget {
                                 color: isAbLooping
                                     ? const Color(0xFFE5C46A)
                                     : isLooping
-                                    ? Colors.white
+                                    ? (isLoaded ? Colors.white : Colors.white24)
                                     : const Color(0xFF555555),
                                 size: 24,
                               ),
-                              onPressed: () {
-                                if (!isAbLooping) {
-                                  eventBus.publish(
-                                    ToggleLoopingCommand(
-                                      currentIsLooping: isLooping,
-                                    ),
-                                  );
-                                }
-                              },
-                              onLongPress: () {
-                                eventBus.publish(
-                                  ToggleAbLoopingCommand(
-                                    currentIsAbLooping: isAbLooping,
-                                    currentIsLooping: isLooping,
-                                  ),
-                                );
-                              },
+                              onPressed: isLoaded && !isAbLooping
+                                  ? () {
+                                      eventBus.publish(
+                                        ToggleLoopingCommand(
+                                          currentIsLooping: isLooping,
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              onLongPress: isLoaded
+                                  ? () {
+                                      eventBus.publish(
+                                        ToggleAbLoopingCommand(
+                                          currentIsAbLooping: isAbLooping,
+                                          currentIsLooping: isLooping,
+                                        ),
+                                      );
+                                    }
+                                  : null,
                               tooltip: isAbLooping
                                   ? 'Exit A-B loop'
                                   : 'Long press for A-B loop',
@@ -236,6 +241,7 @@ class _TimeSlider extends StatelessWidget {
   final bool isAbLooping;
   final double? abLoopStartSecs;
   final double? abLoopEndSecs;
+  final bool isLoaded;
 
   const _TimeSlider({
     required this.controller,
@@ -244,6 +250,7 @@ class _TimeSlider extends StatelessWidget {
     required this.isAbLooping,
     required this.abLoopStartSecs,
     required this.abLoopEndSecs,
+    required this.isLoaded,
   });
 
   @override
@@ -274,8 +281,10 @@ class _TimeSlider extends StatelessWidget {
                 ),
                 Expanded(
                   child: MouseRegion(
-                    onHover: (event) => ctrl.handleHover(event, max),
-                    onExit: (_) => ctrl.removeThumbnail(),
+                    onHover: isLoaded
+                        ? (event) => controller.handleHover(event, max)
+                        : null,
+                    onExit: (_) => controller.removeThumbnail(),
                     child: SizedBox(
                       height: 34,
                       child: Stack(
@@ -284,49 +293,61 @@ class _TimeSlider extends StatelessWidget {
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
                               trackHeight: 4,
-                              activeTrackColor: const Color(0xFFE5E5E5),
+                              activeTrackColor: isLoaded
+                                  ? const Color(0xFFE5E5E5)
+                                  : Colors.white10,
                               inactiveTrackColor: const Color(0xFF333333),
-                              thumbColor: Colors.white,
-                              thumbShape: const RoundSliderThumbShape(
-                                enabledThumbRadius: 6,
-                              ),
+                              thumbColor: isLoaded
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              thumbShape: isLoaded
+                                  ? const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6,
+                                    )
+                                  : SliderComponentShape.noThumb,
                             ),
                             child: Slider(
-                              key: ctrl.sliderKey,
-                              focusNode: ctrl.sliderFocusNode,
+                              key: controller.sliderKey,
+                              focusNode: controller.sliderFocusNode,
                               value: displayValue,
                               max: max,
-                              onChangeStart: (val) {
-                                ctrl.removeThumbnail();
-                                ctrl.localScrubValue = val;
-                                eventBus.publish(
-                                  StartScrubbingCommand(
-                                    currentIsPlaying: isPlaying,
-                                  ),
-                                );
-                              },
-                              onChanged: (val) {
-                                ctrl.localScrubValue = val;
-                                eventBus.publish(
-                                  UpdateScrubValueCommand(
-                                    val,
-                                    durationSecs: durationSecs,
-                                    isScrubbing: true,
-                                  ),
-                                );
-                              },
-                              onChangeEnd: (val) {
-                                eventBus.publish(
-                                  EndScrubbingCommand(
-                                    seconds: val,
-                                    durationSecs: durationSecs,
-                                    wasPlayingBeforeScrub: context
-                                        .read<VideoPlayerViewModel>()
-                                        .wasPlayingBeforeScrub,
-                                  ),
-                                );
-                                ctrl.localScrubValue = null;
-                              },
+                              onChangeStart: isLoaded
+                                  ? (val) {
+                                      controller.removeThumbnail();
+                                      controller.localScrubValue = val;
+                                      eventBus.publish(
+                                        StartScrubbingCommand(
+                                          currentIsPlaying: isPlaying,
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              onChanged: isLoaded
+                                  ? (val) {
+                                      controller.localScrubValue = val;
+                                      eventBus.publish(
+                                        UpdateScrubValueCommand(
+                                          val,
+                                          durationSecs: durationSecs,
+                                          isScrubbing: true,
+                                        ),
+                                      );
+                                    }
+                                  : null,
+                              onChangeEnd: isLoaded
+                                  ? (val) {
+                                      eventBus.publish(
+                                        EndScrubbingCommand(
+                                          seconds: val,
+                                          durationSecs: durationSecs,
+                                          wasPlayingBeforeScrub: context
+                                              .read<VideoPlayerViewModel>()
+                                              .wasPlayingBeforeScrub,
+                                        ),
+                                      );
+                                      controller.localScrubValue = null;
+                                    }
+                                  : null,
                             ),
                           ),
                           if (isAbLooping)

@@ -97,7 +97,8 @@ class VideoControlBarController extends ChangeNotifier {
   Future<void> _fetchNextThumbnail() async {
     if (_isFetchingThumbnail ||
         _pendingThumbnailValue == null ||
-        !_isHovering) {
+        !_isHovering ||
+        !viewModel.isLoaded) {
       return;
     }
 
