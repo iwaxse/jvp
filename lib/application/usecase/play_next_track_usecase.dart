@@ -21,22 +21,23 @@ import '../commands/open_file_command.dart';
 import '../../../domain/models/video_models.dart';
 
 class PlayNextTrackUseCase {
-  Future<void> execute({
+  Future<bool> execute({
     required List<MediaFileEntry> playlist,
     required String? currentPath,
     required double volume,
     required AppEventBus eventBus,
   }) async {
-    if (currentPath == null || playlist.isEmpty) return;
+    if (currentPath == null || playlist.isEmpty) return false;
 
     final currentIndex = playlist.indexWhere(
       (item) => item.path == currentPath,
     );
-    if (currentIndex < 0 || currentIndex + 1 >= playlist.length) return;
+    if (currentIndex < 0 || currentIndex + 1 >= playlist.length) return false;
 
     final nextEntry = playlist[currentIndex + 1];
     eventBus.publish(
       OpenFileCommand(nextEntry.path, volume: volume, autoplay: true),
     );
+    return true;
   }
 }

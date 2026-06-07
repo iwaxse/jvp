@@ -20,9 +20,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../application/app_event_bus.dart';
-import '../application/commands/toggle_play_command.dart';
-import '../application/commands/step_frame_command.dart';
+import '../../application/app_event_bus.dart';
+import '../../application/commands/toggle_play_command.dart';
+import '../../application/commands/step_frame_command.dart';
 import 'video_player_view_model.dart';
 
 class VideoPlayerViewController extends ChangeNotifier {

@@ -19,7 +19,9 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../video_player_view_model.dart';
+import '../controller/thumbnail_controller.dart';
 
 class VideoControlBarWidgetController extends ChangeNotifier {
   final BuildContext context;
@@ -101,7 +103,8 @@ class VideoControlBarWidgetController extends ChangeNotifier {
     final targetValue = _pendingThumbnailValue!;
     _pendingThumbnailValue = null;
 
-    final img = await viewModel.getThumbnailImage(targetValue);
+    final thumbnailController = context.read<ThumbnailController>();
+    final img = await thumbnailController.getThumbnailImage(targetValue);
 
     if (_isHovering) {
       final oldImg = _currentThumbnail;

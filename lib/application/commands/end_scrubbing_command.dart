@@ -21,19 +21,24 @@ import '../../../domain/repository/video_repository.dart';
 
 class EndScrubbingCommand extends AppCommand {
   final double seconds;
+  final double durationSecs;
   final bool wasPlayingBeforeScrub;
 
   EndScrubbingCommand({
     required this.seconds,
+    required this.durationSecs,
     required this.wasPlayingBeforeScrub,
   });
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
+    final clampedSeconds = seconds.clamp(0.0, durationSecs - 0.01);
+    // 更新を即座に反映させて snap-back を防ぐ
+    eventBus.publish(PlaybackPositionEvent(clampedSeconds));
     eventBus.publish(
       ScrubbingStateEvent(isScrubbing: false, wasPlayingBeforeScrub: false),
     );
-    await repository.seek(seconds, accurate: true);
+    await repository.seek(clampedSeconds, accurate: true);
     await repository.updateTexture();
 
     if (wasPlayingBeforeScrub) {

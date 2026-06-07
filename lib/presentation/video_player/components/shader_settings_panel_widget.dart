@@ -18,9 +18,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../application/app_event_bus.dart';
-import '../../application/commands/set_effect_command.dart';
-import '../video_player_view_model.dart';
+import '../../../application/app_event_bus.dart';
+import '../../../application/commands/set_effect_command.dart';
+import '../controller/effect_controller.dart';
 
 class ShaderSettingsPanelWidget extends StatelessWidget {
   final VoidCallback? onClose;
@@ -34,7 +34,7 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final viewModel = context.read<VideoPlayerViewModel>();
+    final effectController = context.read<EffectController>();
 
     final body = SafeArea(
       child: Column(
@@ -77,26 +77,26 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
                   _buildSectionHeader('Detail Enhance'),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'super_res',
                     name: 'ULTRA RES (RCAS)',
                   ),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'deband',
                     name: 'DEBAND (DITHER)',
                   ),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'smooth',
                     name: 'SMOOTH SKIN',
                   ),
-                  _buildSharpenWithSelector(context, viewModel),
+                  _buildSharpenWithSelector(context, effectController),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'unsharp',
                     name: 'UNSHARP MASK',
                   ),
@@ -104,25 +104,25 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
                   _buildSectionHeader('Color & Toning'),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'hdr',
                     name: 'HDR DYNAMIC',
                   ),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'cleancinema',
                     name: 'CLEAN CINEMA',
                   ),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'vintage',
                     name: 'VINTAGE',
                   ),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'cyberpunk',
                     name: 'CYBERPUNK',
                   ),
@@ -130,14 +130,19 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
                   _buildSectionHeader('Atmosphere'),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
                     id: 'bloom',
                     name: 'BLOOM / GLOW',
                   ),
-                  _buildSlider(context, viewModel, id: 'blur', name: 'BLUR'),
                   _buildSlider(
                     context,
-                    viewModel,
+                    effectController,
+                    id: 'blur',
+                    name: 'BLUR',
+                  ),
+                  _buildSlider(
+                    context,
+                    effectController,
                     id: 'vignette',
                     name: 'VIGNETTE',
                   ),
@@ -180,12 +185,12 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
 
   Widget _buildSlider(
     BuildContext context,
-    VideoPlayerViewModel viewModel, {
+    EffectController controller, {
     required String id,
     required String name,
   }) {
-    final value = context.select<VideoPlayerViewModel, double>(
-      (vm) => vm.getEffect(id),
+    final value = context.select<EffectController, double>(
+      (c) => c.getEffect(id),
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -232,13 +237,13 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
 
   Widget _buildSharpenWithSelector(
     BuildContext context,
-    VideoPlayerViewModel viewModel,
+    EffectController controller,
   ) {
-    final value = context.select<VideoPlayerViewModel, double>(
-      (vm) => vm.getEffect('sharpen'),
+    final value = context.select<EffectController, double>(
+      (c) => c.getEffect('sharpen'),
     );
-    final isLaplacian = context.select<VideoPlayerViewModel, bool>(
-      (vm) => vm.getEffect('sharpen_type') > 0.5,
+    final isLaplacian = context.select<EffectController, bool>(
+      (c) => c.getEffect('sharpen_type') > 0.5,
     );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

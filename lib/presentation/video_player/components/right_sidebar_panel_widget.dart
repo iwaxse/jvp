@@ -18,7 +18,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../video_player_view_model.dart';
+import '../controller/media_library_controller.dart';
 import 'file_browser_tab_widget.dart';
 import 'playlist_tab_widget.dart';
 import 'shader_settings_panel_widget.dart';
@@ -146,9 +146,9 @@ class _RightSidebarPanelWidgetState extends State<RightSidebarPanelWidget>
   }
 
   Future<void> _openRootSettings() async {
-    final viewModel = context.read<VideoPlayerViewModel>();
+    final libraryController = context.read<MediaLibraryController>();
     final rootController = TextEditingController();
-    final roots = List<String>.from(viewModel.mediaSearchRoots);
+    final roots = List<String>.from(libraryController.searchRoots);
 
     await showDialog<void>(
       context: context,
@@ -246,7 +246,7 @@ class _RightSidebarPanelWidgetState extends State<RightSidebarPanelWidget>
                 TextButton(onPressed: addRoot, child: const Text('Add')),
                 ElevatedButton(
                   onPressed: () async {
-                    await viewModel.updateMediaSearchRoots(roots);
+                    await libraryController.updateSearchRoots(roots);
                     if (dialogContext.mounted) {
                       Navigator.of(dialogContext).pop();
                     }

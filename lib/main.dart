@@ -29,8 +29,12 @@ import 'application/command_handler.dart';
 import 'application/commands/open_file_command.dart';
 import 'domain/repository/video_repository.dart';
 import 'domain/repository/playlist_repository.dart';
-import 'presentation/video_player_view_model.dart';
-import 'presentation/video_player_view.dart';
+import 'presentation/video_player/controller/media_library_controller.dart';
+import 'presentation/video_player/controller/effect_controller.dart';
+import 'presentation/video_player/controller/thumbnail_controller.dart';
+import 'presentation/video_player/controller/playlist_controller.dart';
+import 'presentation/video_player/video_player_view_model.dart';
+import 'presentation/video_player/video_player_view.dart';
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,11 +62,8 @@ void main(List<String> args) async {
   final repository = VideoRepositoryImpl();
   final playlistRepository = PlaylistRepositoryImpl();
 
-  final viewModel = VideoPlayerViewModel(
-    repository,
-    playlistRepository,
-    eventBus,
-  );
+  final viewModel = VideoPlayerViewModel(repository, eventBus);
+
   runApp(
     MultiProvider(
       providers: [
@@ -73,6 +74,20 @@ void main(List<String> args) async {
           create: (_) => CommandHandler(repository, eventBus)..init(),
           dispose: (_, handler) => handler.dispose(),
           lazy: false,
+        ),
+        ChangeNotifierProvider<MediaLibraryController>(
+          create: (_) => MediaLibraryController(repository)..load(),
+        ),
+        ChangeNotifierProvider<EffectController>(
+          create: (_) => EffectController(eventBus)..init(),
+        ),
+        ChangeNotifierProvider<ThumbnailController>(
+          create: (_) => ThumbnailController(repository, eventBus)..init(),
+        ),
+        ChangeNotifierProvider<PlaylistController>(
+          create: (_) => PlaylistController(playlistRepository, eventBus)
+            ..load()
+            ..init(viewModel),
         ),
         ChangeNotifierProvider<VideoPlayerViewModel>.value(value: viewModel),
       ],

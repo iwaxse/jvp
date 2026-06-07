@@ -18,8 +18,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../domain/models/video_models.dart';
+import '../../../domain/models/video_models.dart';
 import '../video_player_view_model.dart';
+import '../controller/playlist_controller.dart';
 
 class PlaylistTabWidget extends StatelessWidget {
   const PlaylistTabWidget({super.key});
@@ -27,11 +28,16 @@ class PlaylistTabWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
-    final playlist = context.select<VideoPlayerViewModel, List<MediaFileEntry>>(
-      (vm) => vm.playlist,
+    final playlistController = context.read<PlaylistController>();
+
+    final playlist = context.select<PlaylistController, List<MediaFileEntry>>(
+      (c) => c.playlist,
     );
-    final currentIndex = context.select<VideoPlayerViewModel, int?>(
-      (vm) => vm.currentPlaylistIndex,
+    final currentMediaPath = context.select<VideoPlayerViewModel, String?>(
+      (vm) => vm.currentMediaPath,
+    );
+    final currentIndex = context.select<PlaylistController, int?>(
+      (c) => c.indexOf(currentMediaPath),
     );
 
     return Container(
@@ -54,7 +60,7 @@ class PlaylistTabWidget extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: playlist.isEmpty ? null : viewModel.clearPlaylist,
+                  onPressed: playlist.isEmpty ? null : playlistController.clear,
                   icon: const Icon(
                     Icons.delete_sweep_outlined,
                     color: Color(0xFFB9B9B9),
@@ -101,7 +107,8 @@ class PlaylistTabWidget extends StatelessWidget {
                       ),
                     ),
                     child: ListTile(
-                      onTap: () => viewModel.playPlaylistIndex(index),
+                      onTap: () =>
+                          playlistController.playIndex(index, viewModel.volume),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -137,8 +144,7 @@ class PlaylistTabWidget extends StatelessWidget {
                         ),
                       ),
                       trailing: IconButton(
-                        onPressed: () =>
-                            viewModel.removeFromPlaylist(entry.path),
+                        onPressed: () => playlistController.remove(entry.path),
                         icon: const Icon(
                           Icons.remove_circle_outline,
                           color: Color(0xFFB56B6B),

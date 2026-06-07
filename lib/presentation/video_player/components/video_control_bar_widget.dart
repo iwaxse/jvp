@@ -18,14 +18,14 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../application/app_event_bus.dart';
-import '../../application/commands/toggle_play_command.dart';
-import '../../application/commands/toggle_looping_command.dart';
-import '../../application/commands/toggle_mute_command.dart';
-import '../../application/commands/set_volume_command.dart';
-import '../../application/commands/start_scrubbing_command.dart';
-import '../../application/commands/update_scrub_value_command.dart';
-import '../../application/commands/end_scrubbing_command.dart';
+import '../../../application/app_event_bus.dart';
+import '../../../application/commands/toggle_play_command.dart';
+import '../../../application/commands/toggle_looping_command.dart';
+import '../../../application/commands/toggle_mute_command.dart';
+import '../../../application/commands/set_volume_command.dart';
+import '../../../application/commands/start_scrubbing_command.dart';
+import '../../../application/commands/update_scrub_value_command.dart';
+import '../../../application/commands/end_scrubbing_command.dart';
 import '../video_player_view_model.dart';
 import 'video_control_bar_widget_controller.dart';
 
@@ -260,13 +260,18 @@ class _TimeSlider extends StatelessWidget {
                     onChanged: (val) {
                       ctrl.localScrubValue = val;
                       eventBus.publish(
-                        UpdateScrubValueCommand(val, isScrubbing: true),
+                        UpdateScrubValueCommand(
+                          val,
+                          durationSecs: durationSecs,
+                          isScrubbing: true,
+                        ),
                       );
                     },
                     onChangeEnd: (val) {
                       eventBus.publish(
                         EndScrubbingCommand(
                           seconds: val,
+                          durationSecs: durationSecs,
                           wasPlayingBeforeScrub: context
                               .read<VideoPlayerViewModel>()
                               .wasPlayingBeforeScrub,

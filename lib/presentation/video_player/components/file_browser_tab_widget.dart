@@ -18,8 +18,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../domain/models/video_models.dart';
+import '../../../domain/models/video_models.dart';
 import '../video_player_view_model.dart';
+import '../controller/media_library_controller.dart';
+import '../controller/playlist_controller.dart';
 
 class FileBrowserTabWidget extends StatelessWidget {
   final VoidCallback onSettingsPressed;
@@ -29,17 +31,20 @@ class FileBrowserTabWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
-    final roots = context.select<VideoPlayerViewModel, List<String>>(
-      (vm) => vm.mediaSearchRoots,
+    final libraryController = context.read<MediaLibraryController>();
+    final playlistController = context.read<PlaylistController>();
+
+    final roots = context.select<MediaLibraryController, List<String>>(
+      (c) => c.searchRoots,
     );
-    final isLoading = context.select<VideoPlayerViewModel, bool>(
-      (vm) => vm.isMediaLibraryLoading,
+    final isLoading = context.select<MediaLibraryController, bool>(
+      (c) => c.isLoading,
     );
-    final error = context.select<VideoPlayerViewModel, String?>(
-      (vm) => vm.mediaLibraryError,
+    final error = context.select<MediaLibraryController, String?>(
+      (c) => c.error,
     );
-    final files = context.select<VideoPlayerViewModel, List<MediaFileEntry>>(
-      (vm) => vm.mediaFiles,
+    final files = context.select<MediaLibraryController, List<MediaFileEntry>>(
+      (c) => c.files,
     );
     final currentMediaPath = context.select<VideoPlayerViewModel, String?>(
       (vm) => vm.currentMediaPath,
@@ -65,7 +70,7 @@ class FileBrowserTabWidget extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  onPressed: () => viewModel.refreshMediaLibrary(),
+                  onPressed: () => libraryController.refresh(),
                   icon: const Icon(
                     Icons.refresh,
                     color: Color(0xFFB9B9B9),
@@ -240,7 +245,7 @@ class FileBrowserTabWidget extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              onPressed: () => viewModel.addToPlaylist(file),
+                              onPressed: () => playlistController.add(file),
                               icon: const Icon(
                                 Icons.playlist_add_outlined,
                                 color: Color(0xFFB9B9B9),

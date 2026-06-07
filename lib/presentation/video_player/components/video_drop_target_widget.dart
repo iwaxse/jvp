@@ -19,8 +19,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
-import '../../application/app_event_bus.dart';
-import '../../application/commands/open_file_command.dart';
+import '../../../application/app_event_bus.dart';
+import '../../../application/commands/open_file_command.dart';
 import '../video_player_view_controller.dart';
 import '../video_player_view_model.dart';
 

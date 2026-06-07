@@ -21,13 +21,19 @@ import '../../../domain/repository/video_repository.dart';
 
 class UpdateScrubValueCommand extends AppCommand {
   final double seconds;
+  final double durationSecs;
   final bool isScrubbing;
 
-  UpdateScrubValueCommand(this.seconds, {required this.isScrubbing});
+  UpdateScrubValueCommand(
+    this.seconds, {
+    required this.durationSecs,
+    required this.isScrubbing,
+  });
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    await repository.seek(seconds, accurate: !isScrubbing);
+    final clampedSeconds = seconds.clamp(0.0, durationSecs - 0.01);
+    await repository.seek(clampedSeconds, accurate: !isScrubbing);
     await repository.updateTexture();
   }
 }
