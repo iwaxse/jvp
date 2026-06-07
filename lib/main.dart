@@ -23,9 +23,11 @@ import 'package:provider/provider.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'infrastructure/adapter/rust/generated/frb_generated.dart';
 import 'infrastructure/repository/video_repository_impl.dart';
+import 'infrastructure/repository/playlist_repository_impl.dart';
 import 'application/app_event_bus.dart';
 import 'application/usecase/open_file_usecase.dart';
 import 'domain/repository/video_repository.dart';
+import 'domain/repository/playlist_repository.dart';
 import 'presentation/video_player_view_model.dart';
 import 'presentation/video_player_view.dart';
 
@@ -53,13 +55,19 @@ void main(List<String> args) async {
   }
   final eventBus = AppEventBus();
   final repository = VideoRepositoryImpl();
+  final playlistRepository = PlaylistRepositoryImpl();
 
-  final viewModel = VideoPlayerViewModel(repository, eventBus);
+  final viewModel = VideoPlayerViewModel(
+    repository,
+    playlistRepository,
+    eventBus,
+  );
   runApp(
     MultiProvider(
       providers: [
         Provider<AppEventBus>.value(value: eventBus),
         Provider<VideoRepository>.value(value: repository),
+        Provider<PlaylistRepository>.value(value: playlistRepository),
         ChangeNotifierProvider<VideoPlayerViewModel>.value(value: viewModel),
       ],
       child: const MyApp(),
