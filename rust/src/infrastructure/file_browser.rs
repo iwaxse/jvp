@@ -125,7 +125,6 @@ fn is_supported_media_file(path: &Path) -> bool {
                     | "mpg"
                     | "mpeg"
                     | "wmv"
-                    | "gif"
             )
         })
         .unwrap_or(false)
