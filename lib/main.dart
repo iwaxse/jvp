@@ -25,6 +25,7 @@ import 'infrastructure/adapter/rust/generated/frb_generated.dart';
 import 'infrastructure/repository/video_repository_impl.dart';
 import 'infrastructure/repository/playlist_repository_impl.dart';
 import 'application/app_event_bus.dart';
+import 'application/command_handler.dart';
 import 'application/usecase/open_file_usecase.dart';
 import 'domain/repository/video_repository.dart';
 import 'domain/repository/playlist_repository.dart';
@@ -68,6 +69,11 @@ void main(List<String> args) async {
         Provider<AppEventBus>.value(value: eventBus),
         Provider<VideoRepository>.value(value: repository),
         Provider<PlaylistRepository>.value(value: playlistRepository),
+        Provider<CommandHandler>(
+          create: (_) => CommandHandler(repository, eventBus)..init(),
+          dispose: (_, handler) => handler.dispose(),
+          lazy: false,
+        ),
         ChangeNotifierProvider<VideoPlayerViewModel>.value(value: viewModel),
       ],
       child: const MyApp(),

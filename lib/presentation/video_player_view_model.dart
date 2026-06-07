@@ -167,13 +167,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
     });
 
     _eventBusSubscription = _eventBus.stream.listen((event) async {
-      if (event is AppCommand) {
-        try {
-          await event.execute(_repository, _eventBus);
-        } catch (e) {
-          debugPrint("Error executing command: $e");
-        }
-      } else if (event is VideoLoadedEvent) {
+      if (event is VideoLoadedEvent) {
         _textureId = event.textureId;
         _width = event.width;
         _height = event.height;
