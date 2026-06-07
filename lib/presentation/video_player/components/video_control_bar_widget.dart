@@ -120,7 +120,7 @@ class VideoControlBarWidget extends StatelessWidget {
                                     }
                                   : null,
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             IconButton(
                               icon: Icon(
                                 isLooping ? Icons.loop : Icons.loop_outlined,
@@ -131,13 +131,15 @@ class VideoControlBarWidget extends StatelessWidget {
                                     : const Color(0xFF555555),
                                 size: 24,
                               ),
-                              onPressed: isLoaded && !isAbLooping
+                              onPressed: isLoaded
                                   ? () {
-                                      eventBus.publish(
-                                        ToggleLoopingCommand(
-                                          currentIsLooping: isLooping,
-                                        ),
-                                      );
+                                      if (!isAbLooping) {
+                                        eventBus.publish(
+                                          ToggleLoopingCommand(
+                                            currentIsLooping: isLooping,
+                                          ),
+                                        );
+                                      }
                                     }
                                   : null,
                               onLongPress: isLoaded
@@ -154,7 +156,7 @@ class VideoControlBarWidget extends StatelessWidget {
                                   ? 'Exit A-B loop'
                                   : 'Long press for A-B loop',
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             IconButton(
                               icon: Icon(
                                 isMuted
@@ -175,7 +177,7 @@ class VideoControlBarWidget extends StatelessWidget {
                               },
                             ),
                             SizedBox(
-                              width: 80,
+                              width: 70,
                               child: SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
                                   trackHeight: 2,

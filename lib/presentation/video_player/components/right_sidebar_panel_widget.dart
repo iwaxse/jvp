@@ -172,8 +172,12 @@ class _RightSidebarPanelWidgetState extends State<RightSidebarPanelWidget>
                 'Media folders',
                 style: TextStyle(color: Color(0xFFEFEFEF)),
               ),
-              content: SizedBox(
-                width: 520,
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: 520,
+                  maxWidth: 520,
+                  maxHeight: 400,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -195,9 +199,9 @@ class _RightSidebarPanelWidgetState extends State<RightSidebarPanelWidget>
                       onSubmitted: (_) => addRoot(),
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      height: 320,
+                    Flexible(
                       child: ListView.separated(
+                        shrinkWrap: true,
                         itemCount: roots.length,
                         separatorBuilder: (_, _) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {

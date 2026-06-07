@@ -30,6 +30,9 @@ class MainFlutterWindow: NSWindow {
         self.setFrame(windowFrame, display: true)
 
         RegisterGeneratedPlugins(registry: flutterViewController)
+        
+        // Set minimum window size
+        self.minSize = NSSize(width: 900, height: 600)
 
         let channel = FlutterMethodChannel(name: "com.iwaxse.jvp/texture", binaryMessenger: flutterViewController.engine.binaryMessenger)
         self.channel = channel

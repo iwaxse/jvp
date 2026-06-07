@@ -42,37 +42,42 @@ class PlaylistTabWidget extends StatelessWidget {
 
     return Container(
       color: const Color(0xFF141414),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Playlist',
-                    style: TextStyle(
-                      color: Color(0xFFD4AF37),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.3,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Playlist',
+                      style: TextStyle(
+                        color: Color(0xFFD4AF37),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.3,
+                      ),
                     ),
                   ),
-                ),
-                IconButton(
-                  onPressed: playlist.isEmpty ? null : playlistController.clear,
-                  icon: const Icon(
-                    Icons.delete_sweep_outlined,
-                    color: Color(0xFFB9B9B9),
-                    size: 20,
+                  IconButton(
+                    onPressed: playlist.isEmpty
+                        ? null
+                        : playlistController.clear,
+                    icon: const Icon(
+                      Icons.delete_sweep_outlined,
+                      color: Color(0xFFB9B9B9),
+                      size: 20,
+                    ),
+                    tooltip: 'Clear playlist',
                   ),
-                  tooltip: 'Clear playlist',
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (playlist.isEmpty)
-            const Expanded(
+            const SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
@@ -85,9 +90,9 @@ class PlaylistTabWidget extends StatelessWidget {
               ),
             )
           else
-            Expanded(
-              child: ReorderableListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              sliver: SliverReorderableList(
                 itemCount: playlist.length,
                 onReorder: playlistController.reorder,
                 proxyDecorator: (child, index, animation) =>

@@ -52,71 +52,80 @@ class FileBrowserTabWidget extends StatelessWidget {
 
     return Container(
       color: const Color(0xFF141414),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
-            child: Row(
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Text(
-                    'Files',
-                    style: TextStyle(
-                      color: Color(0xFFD4AF37),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.3,
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
+                  child: Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Files',
+                          style: TextStyle(
+                            color: Color(0xFFD4AF37),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.3,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => libraryController.refresh(),
+                        icon: const Icon(
+                          Icons.refresh,
+                          color: Color(0xFFB9B9B9),
+                          size: 20,
+                        ),
+                        tooltip: 'Rescan',
+                      ),
+                      IconButton(
+                        onPressed: onSettingsPressed,
+                        icon: const Icon(
+                          Icons.settings_outlined,
+                          color: Color(0xFFB9B9B9),
+                          size: 20,
+                        ),
+                        tooltip: 'Search roots',
+                      ),
+                    ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => libraryController.refresh(),
-                  icon: const Icon(
-                    Icons.refresh,
-                    color: Color(0xFFB9B9B9),
-                    size: 20,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: roots
+                        .map(
+                          (root) => Chip(
+                            label: Text(
+                              root,
+                              style: const TextStyle(
+                                color: Color(0xFFE7E7E7),
+                                fontSize: 11,
+                              ),
+                            ),
+                            backgroundColor: const Color(0xFF1E1E1E),
+                            side: const BorderSide(color: Color(0xFF2E2E2E)),
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        )
+                        .toList(),
                   ),
-                  tooltip: 'Rescan',
                 ),
-                IconButton(
-                  onPressed: onSettingsPressed,
-                  icon: const Icon(
-                    Icons.settings_outlined,
-                    color: Color(0xFFB9B9B9),
-                    size: 20,
-                  ),
-                  tooltip: 'Search roots',
-                ),
+                const SizedBox(height: 12),
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: roots
-                  .map(
-                    (root) => Chip(
-                      label: Text(
-                        root,
-                        style: const TextStyle(
-                          color: Color(0xFFE7E7E7),
-                          fontSize: 11,
-                        ),
-                      ),
-                      backgroundColor: const Color(0xFF1E1E1E),
-                      side: const BorderSide(color: Color(0xFF2E2E2E)),
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(height: 12),
           if (isLoading)
-            const Expanded(
+            const SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
@@ -125,7 +134,8 @@ class FileBrowserTabWidget extends StatelessWidget {
               ),
             )
           else if (error != null)
-            Expanded(
+            SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -141,7 +151,8 @@ class FileBrowserTabWidget extends StatelessWidget {
               ),
             )
           else if (files.isEmpty)
-            const Expanded(
+            const SliverFillRemaining(
+              hasScrollBody: false,
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
@@ -154,16 +165,15 @@ class FileBrowserTabWidget extends StatelessWidget {
               ),
             )
           else
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                itemCount: files.length,
-                separatorBuilder: (_, _) =>
-                    const Divider(height: 1, color: Color(0xFF232323)),
-                itemBuilder: (context, index) {
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate((context, index) {
                   final file = files[index];
                   final isCurrent = file.path == currentMediaPath;
-                  return InkWell(
+
+                  // Add divider between items
+                  Widget item = InkWell(
                     onTap: () {
                       viewModel.openMediaFile(file.path);
                     },
@@ -258,7 +268,18 @@ class FileBrowserTabWidget extends StatelessWidget {
                       ),
                     ),
                   );
-                },
+
+                  if (index < files.length - 1) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        item,
+                        const Divider(height: 1, color: Color(0xFF232323)),
+                      ],
+                    );
+                  }
+                  return item;
+                }, childCount: files.length),
               ),
             ),
         ],

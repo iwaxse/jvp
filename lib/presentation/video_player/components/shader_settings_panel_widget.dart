@@ -37,118 +37,125 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
     final effectController = context.read<EffectController>();
 
     final body = SafeArea(
-      child: Column(
-        children: [
+      child: CustomScrollView(
+        slivers: [
           if (!embedded)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            SliverToBoxAdapter(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'Engine Tuner',
-                    style: TextStyle(
-                      color: Color(0xFFD4AF37),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.5,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Engine Tuner',
+                          style: TextStyle(
+                            color: Color(0xFFD4AF37),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        if (onClose != null)
+                          IconButton(
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                            onPressed: onClose,
+                          ),
+                      ],
                     ),
                   ),
-                  if (onClose != null)
-                    IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                      onPressed: onClose,
-                    ),
+                  const Divider(color: Color(0xFF333333), height: 1),
                 ],
               ),
             ),
-          if (!embedded) const Divider(color: Color(0xFF333333), height: 1),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
-                  _buildSectionHeader('Detail Enhance'),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'super_res',
-                    name: 'ULTRA RES (RCAS)',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'deband',
-                    name: 'DEBAND (DITHER)',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'smooth',
-                    name: 'SMOOTH SKIN',
-                  ),
-                  _buildSharpenWithSelector(context, effectController),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'unsharp',
-                    name: 'UNSHARP MASK',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Color & Toning'),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'hdr',
-                    name: 'HDR DYNAMIC',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'cleancinema',
-                    name: 'CLEAN CINEMA',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'vintage',
-                    name: 'VINTAGE',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'cyberpunk',
-                    name: 'CYBERPUNK',
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSectionHeader('Atmosphere'),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'bloom',
-                    name: 'BLOOM / GLOW',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'blur',
-                    name: 'BLUR',
-                  ),
-                  _buildSlider(
-                    context,
-                    effectController,
-                    id: 'vignette',
-                    name: 'VIGNETTE',
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                const SizedBox(height: 12),
+                _buildSectionHeader('Detail Enhance'),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'super_res',
+                  name: 'ULTRA RES (RCAS)',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'deband',
+                  name: 'DEBAND (DITHER)',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'smooth',
+                  name: 'SMOOTH SKIN',
+                ),
+                _buildSharpenWithSelector(context, effectController),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'unsharp',
+                  name: 'UNSHARP MASK',
+                ),
+                const SizedBox(height: 16),
+                _buildSectionHeader('Color & Toning'),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'hdr',
+                  name: 'HDR DYNAMIC',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'cleancinema',
+                  name: 'CLEAN CINEMA',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'vintage',
+                  name: 'VINTAGE',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'cyberpunk',
+                  name: 'CYBERPUNK',
+                ),
+                const SizedBox(height: 16),
+                _buildSectionHeader('Atmosphere'),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'bloom',
+                  name: 'BLOOM / GLOW',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'blur',
+                  name: 'BLUR',
+                ),
+                _buildSlider(
+                  context,
+                  effectController,
+                  id: 'vignette',
+                  name: 'VIGNETTE',
+                ),
+                const SizedBox(height: 24),
+              ]),
             ),
           ),
         ],
