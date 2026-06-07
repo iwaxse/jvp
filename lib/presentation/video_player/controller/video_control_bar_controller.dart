@@ -21,9 +21,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../video_player_view_model.dart';
-import '../controller/thumbnail_controller.dart';
+import 'thumbnail_controller.dart';
 
-class VideoControlBarWidgetController extends ChangeNotifier {
+class VideoControlBarController extends ChangeNotifier {
   final BuildContext context;
   final VideoPlayerViewModel viewModel;
 
@@ -47,7 +47,7 @@ class VideoControlBarWidgetController extends ChangeNotifier {
   bool _isFetchingThumbnail = false;
   double? _pendingThumbnailValue;
 
-  VideoControlBarWidgetController(this.context, this.viewModel);
+  VideoControlBarController(this.context, this.viewModel);
 
   double? get localScrubValue => _localScrubValue;
   ui.Image? get currentThumbnail => _currentThumbnail;

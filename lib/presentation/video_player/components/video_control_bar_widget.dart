@@ -27,7 +27,7 @@ import '../../../application/commands/start_scrubbing_command.dart';
 import '../../../application/commands/update_scrub_value_command.dart';
 import '../../../application/commands/end_scrubbing_command.dart';
 import '../video_player_view_model.dart';
-import 'video_control_bar_widget_controller.dart';
+import '../controller/video_control_bar_controller.dart';
 
 class VideoControlBarWidget extends StatelessWidget {
   const VideoControlBarWidget({super.key});
@@ -35,9 +35,9 @@ class VideoControlBarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewModel = context.read<VideoPlayerViewModel>();
-    return ChangeNotifierProvider<VideoControlBarWidgetController>(
-      create: (context) => VideoControlBarWidgetController(context, viewModel),
-      child: Consumer<VideoControlBarWidgetController>(
+    return ChangeNotifierProvider<VideoControlBarController>(
+      create: (context) => VideoControlBarController(context, viewModel),
+      child: Consumer<VideoControlBarController>(
         builder: (context, controller, _) {
           final eventBus = context.read<AppEventBus>();
           final durationSecs = context.select<VideoPlayerViewModel, double>(
@@ -200,7 +200,7 @@ class VideoControlBarWidget extends StatelessWidget {
 }
 
 class _TimeSlider extends StatelessWidget {
-  final VideoControlBarWidgetController controller;
+  final VideoControlBarController controller;
   final double durationSecs;
   final bool isPlaying;
 
@@ -217,7 +217,7 @@ class _TimeSlider extends StatelessWidget {
       (vm) => vm.currentPosSecs,
     );
 
-    return Consumer<VideoControlBarWidgetController>(
+    return Consumer<VideoControlBarController>(
       builder: (context, ctrl, _) {
         final max = durationSecs > 0 ? durationSecs : 1.0;
         final displayValue = (ctrl.localScrubValue ?? currentPosSecs).clamp(
