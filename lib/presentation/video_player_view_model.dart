@@ -275,7 +275,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> openMediaFile(String path) async {
-    _eventBus.publish(OpenFileCommand(path, volume: volume));
+    _eventBus.publish(OpenFileCommand(path, volume: volume, autoplay: true));
   }
 
   Future<void> _loadMediaLibrary() async {
