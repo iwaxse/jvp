@@ -19,22 +19,15 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class StartScrubbingUseCase extends AppCommand {
+class TogglePlayCommand extends AppCommand {
   final bool currentIsPlaying;
 
-  StartScrubbingUseCase({required this.currentIsPlaying});
+  TogglePlayCommand({required this.currentIsPlaying});
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    if (currentIsPlaying) {
-      await repository.setPlaying(false);
-      eventBus.publish(PlaybackStateEvent(false));
-    }
-    eventBus.publish(
-      ScrubbingStateEvent(
-        isScrubbing: true,
-        wasPlayingBeforeScrub: currentIsPlaying,
-      ),
-    );
+    final nextPlaying = !currentIsPlaying;
+    await repository.setPlaying(nextPlaying);
+    eventBus.publish(PlaybackStateEvent(nextPlaying));
   }
 }

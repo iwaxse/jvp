@@ -21,8 +21,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../application/app_event_bus.dart';
-import '../application/usecase/toggle_play_usecase.dart';
-import '../application/usecase/step_frame_usecase.dart';
+import '../application/commands/toggle_play_command.dart';
+import '../application/commands/step_frame_command.dart';
 import 'video_player_view_model.dart';
 
 class VideoPlayerViewController extends ChangeNotifier {
@@ -100,7 +100,7 @@ class VideoPlayerViewController extends ChangeNotifier {
     if (event is KeyDownEvent) {
       if (key == LogicalKeyboardKey.space) {
         eventBus.publish(
-          TogglePlayUseCase(currentIsPlaying: viewModel.isPlaying),
+          TogglePlayCommand(currentIsPlaying: viewModel.isPlaying),
         );
       } else if (key == LogicalKeyboardKey.keyF) {
         _showSideMenu = !_showSideMenu;
@@ -112,7 +112,7 @@ class VideoPlayerViewController extends ChangeNotifier {
         if (_leftTapTimer == null && !_isLeftHolding) {
           _scrubTargetPos = viewModel.currentPosSecs;
           eventBus.publish(
-            StepFrameUseCase(
+            StepFrameCommand(
               frames: -1,
               currentIsPlaying: viewModel.isPlaying,
               currentPosSecs: _scrubTargetPos!,
@@ -136,7 +136,7 @@ class VideoPlayerViewController extends ChangeNotifier {
                   keys.contains(LogicalKeyboardKey.shiftRight);
               if (!shift && t.tick % 2 != 0) return;
               eventBus.publish(
-                StepFrameUseCase(
+                StepFrameCommand(
                   frames: 0,
                   currentIsPlaying: viewModel.isPlaying,
                   currentPosSecs: _scrubTargetPos!,
@@ -155,7 +155,7 @@ class VideoPlayerViewController extends ChangeNotifier {
           _wasPlayingBeforeHold = viewModel.isPlaying;
           _scrubTargetPos = viewModel.currentPosSecs;
           eventBus.publish(
-            StepFrameUseCase(
+            StepFrameCommand(
               frames: 1,
               currentIsPlaying: viewModel.isPlaying,
               currentPosSecs: _scrubTargetPos!,
@@ -184,7 +184,7 @@ class VideoPlayerViewController extends ChangeNotifier {
                       k.contains(LogicalKeyboardKey.shiftRight);
                   if (!s && t.tick % 2 != 0) return;
                   eventBus.publish(
-                    StepFrameUseCase(
+                    StepFrameCommand(
                       frames: 0,
                       currentIsPlaying: viewModel.isPlaying,
                       currentPosSecs: _scrubTargetPos!,
@@ -198,7 +198,7 @@ class VideoPlayerViewController extends ChangeNotifier {
                 },
               );
             } else if (!_wasPlayingBeforeHold) {
-              eventBus.publish(TogglePlayUseCase(currentIsPlaying: false));
+              eventBus.publish(TogglePlayCommand(currentIsPlaying: false));
             }
           });
         }
@@ -212,7 +212,7 @@ class VideoPlayerViewController extends ChangeNotifier {
           _leftHoldTimer?.cancel();
           _leftHoldTimer = null;
           eventBus.publish(
-            StepFrameUseCase(
+            StepFrameCommand(
               frames: 0,
               currentIsPlaying: viewModel.isPlaying,
               currentPosSecs: viewModel.currentPosSecs,
@@ -232,7 +232,7 @@ class VideoPlayerViewController extends ChangeNotifier {
             _rightHoldTimer!.cancel();
             _rightHoldTimer = null;
             eventBus.publish(
-              StepFrameUseCase(
+              StepFrameCommand(
                 frames: 0,
                 currentIsPlaying: viewModel.isPlaying,
                 currentPosSecs: viewModel.currentPosSecs,
@@ -242,7 +242,7 @@ class VideoPlayerViewController extends ChangeNotifier {
               ),
             );
           } else if (!_wasPlayingBeforeHold) {
-            eventBus.publish(TogglePlayUseCase(currentIsPlaying: true));
+            eventBus.publish(TogglePlayCommand(currentIsPlaying: true));
           }
         }
         _scrubTargetPos = null;

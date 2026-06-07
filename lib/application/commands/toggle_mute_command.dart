@@ -19,11 +19,11 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class ToggleMuteUseCase extends AppCommand {
+class ToggleMuteCommand extends AppCommand {
   final bool currentIsMuted;
   final double currentVolume;
 
-  ToggleMuteUseCase({
+  ToggleMuteCommand({
     required this.currentIsMuted,
     required this.currentVolume,
   });

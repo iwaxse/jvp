@@ -17,7 +17,7 @@
  */
 
 import '../app_event_bus.dart';
-import 'open_file_usecase.dart';
+import '../commands/open_file_command.dart';
 import '../../../domain/models/video_models.dart';
 
 class PlayNextTrackUseCase {
@@ -36,7 +36,7 @@ class PlayNextTrackUseCase {
 
     final nextEntry = playlist[currentIndex + 1];
     eventBus.publish(
-      OpenFileUseCase(nextEntry.path, volume: volume, autoplay: true),
+      OpenFileCommand(nextEntry.path, volume: volume, autoplay: true),
     );
   }
 }

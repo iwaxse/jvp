@@ -19,12 +19,12 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class OpenFileUseCase extends AppCommand {
+class OpenFileCommand extends AppCommand {
   final String filePath;
   final double volume;
   final bool autoplay;
 
-  OpenFileUseCase(this.filePath, {required this.volume, this.autoplay = false});
+  OpenFileCommand(this.filePath, {required this.volume, this.autoplay = false});
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {

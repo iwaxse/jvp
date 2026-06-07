@@ -21,7 +21,7 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import '../../application/app_event_bus.dart';
-import '../../application/usecase/open_file_usecase.dart';
+import '../../application/commands/open_file_command.dart';
 import '../../application/usecase/get_thumbnail_usecase.dart';
 import '../../application/usecase/play_next_track_usecase.dart';
 import '../../application/usecase/add_playlist_entry_usecase.dart';
@@ -240,7 +240,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
     required bool autoplay,
   }) async {
     _eventBus.publish(
-      OpenFileUseCase(entry.path, volume: volume, autoplay: autoplay),
+      OpenFileCommand(entry.path, volume: volume, autoplay: autoplay),
     );
   }
 
@@ -275,7 +275,7 @@ class VideoPlayerViewModel extends ChangeNotifier {
   }
 
   Future<void> openMediaFile(String path) async {
-    _eventBus.publish(OpenFileUseCase(path, volume: volume));
+    _eventBus.publish(OpenFileCommand(path, volume: volume));
   }
 
   Future<void> _loadMediaLibrary() async {

@@ -19,7 +19,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/app_event_bus.dart';
-import '../../application/usecase/set_effect_usecase.dart';
+import '../../application/commands/set_effect_command.dart';
 import '../video_player_view_model.dart';
 
 class ShaderSettingsPanelWidget extends StatelessWidget {
@@ -220,7 +220,7 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
               max: 1.0,
               onChanged: (val) {
                 context.read<AppEventBus>().publish(
-                  SetEffectUseCase(effect: id, intensity: val),
+                  SetEffectCommand(effect: id, intensity: val),
                 );
               },
             ),
@@ -279,7 +279,7 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
                     onChanged: (val) {
                       if (val != null) {
                         context.read<AppEventBus>().publish(
-                          SetEffectUseCase(
+                          SetEffectCommand(
                             effect: 'sharpen_type',
                             intensity: val,
                           ),
@@ -310,7 +310,7 @@ class ShaderSettingsPanelWidget extends StatelessWidget {
               max: 1.0,
               onChanged: (val) {
                 context.read<AppEventBus>().publish(
-                  SetEffectUseCase(effect: 'sharpen', intensity: val),
+                  SetEffectCommand(effect: 'sharpen', intensity: val),
                 );
               },
             ),

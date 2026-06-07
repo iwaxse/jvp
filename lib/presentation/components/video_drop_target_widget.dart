@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:desktop_drop/desktop_drop.dart';
 import '../../application/app_event_bus.dart';
-import '../../application/usecase/open_file_usecase.dart';
+import '../../application/commands/open_file_command.dart';
 import '../video_player_view_controller.dart';
 import '../video_player_view_model.dart';
 
@@ -45,7 +45,7 @@ class VideoDropTargetWidget extends StatelessWidget {
         if (details.files.isNotEmpty) {
           final volume = viewModel.isMuted ? 0.0 : viewModel.volume;
           eventBus.publish(
-            OpenFileUseCase(details.files.first.path, volume: volume),
+            OpenFileCommand(details.files.first.path, volume: volume),
           );
         }
       },

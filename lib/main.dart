@@ -26,7 +26,7 @@ import 'infrastructure/repository/video_repository_impl.dart';
 import 'infrastructure/repository/playlist_repository_impl.dart';
 import 'application/app_event_bus.dart';
 import 'application/command_handler.dart';
-import 'application/usecase/open_file_usecase.dart';
+import 'application/commands/open_file_command.dart';
 import 'domain/repository/video_repository.dart';
 import 'domain/repository/playlist_repository.dart';
 import 'presentation/video_player_view_model.dart';
@@ -81,7 +81,7 @@ void main(List<String> args) async {
   );
   if (args.isNotEmpty) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      eventBus.publish(OpenFileUseCase(args[0], volume: 0.0));
+      eventBus.publish(OpenFileCommand(args[0], volume: 0.0));
     });
   }
 }

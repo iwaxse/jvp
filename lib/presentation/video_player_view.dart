@@ -19,7 +19,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../application/app_event_bus.dart';
-import '../application/usecase/toggle_play_usecase.dart';
+import '../application/commands/toggle_play_command.dart';
 import 'video_player_view_controller.dart';
 import 'video_player_view_model.dart';
 import 'components/right_sidebar_panel_widget.dart';
@@ -70,7 +70,7 @@ class VideoPlayerView extends StatelessWidget {
                     GestureDetector(
                       onTap: () {
                         eventBus.publish(
-                          TogglePlayUseCase(
+                          TogglePlayCommand(
                             currentIsPlaying: viewModel.isPlaying,
                           ),
                         );

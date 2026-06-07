@@ -19,15 +19,14 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class TogglePlayUseCase extends AppCommand {
-  final bool currentIsPlaying;
+class ToggleLoopingCommand extends AppCommand {
+  final bool currentIsLooping;
 
-  TogglePlayUseCase({required this.currentIsPlaying});
+  ToggleLoopingCommand({required this.currentIsLooping});
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    final nextPlaying = !currentIsPlaying;
-    await repository.setPlaying(nextPlaying);
-    eventBus.publish(PlaybackStateEvent(nextPlaying));
+    final nextLooping = !currentIsLooping;
+    eventBus.publish(LoopingStateEvent(nextLooping));
   }
 }

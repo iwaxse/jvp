@@ -19,16 +19,26 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class SetEffectUseCase extends AppCommand {
-  final String effect;
-  final double intensity;
+class EndScrubbingCommand extends AppCommand {
+  final double seconds;
+  final bool wasPlayingBeforeScrub;
 
-  SetEffectUseCase({required this.effect, required this.intensity});
+  EndScrubbingCommand({
+    required this.seconds,
+    required this.wasPlayingBeforeScrub,
+  });
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    await repository.setEffectIntensity(effect, intensity);
+    eventBus.publish(
+      ScrubbingStateEvent(isScrubbing: false, wasPlayingBeforeScrub: false),
+    );
+    await repository.seek(seconds, accurate: true);
     await repository.updateTexture();
-    eventBus.publish(EffectStateEvent(effect: effect, intensity: intensity));
+
+    if (wasPlayingBeforeScrub) {
+      await repository.setPlaying(true);
+      eventBus.publish(PlaybackStateEvent(true));
+    }
   }
 }

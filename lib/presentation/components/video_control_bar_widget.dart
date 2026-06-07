@@ -19,13 +19,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/app_event_bus.dart';
-import '../../application/usecase/toggle_play_usecase.dart';
-import '../../application/usecase/toggle_looping_usecase.dart';
-import '../../application/usecase/toggle_mute_usecase.dart';
-import '../../application/usecase/set_volume_usecase.dart';
-import '../../application/usecase/start_scrubbing_usecase.dart';
-import '../../application/usecase/update_scrub_value_usecase.dart';
-import '../../application/usecase/end_scrubbing_usecase.dart';
+import '../../application/commands/toggle_play_command.dart';
+import '../../application/commands/toggle_looping_command.dart';
+import '../../application/commands/toggle_mute_command.dart';
+import '../../application/commands/set_volume_command.dart';
+import '../../application/commands/start_scrubbing_command.dart';
+import '../../application/commands/update_scrub_value_command.dart';
+import '../../application/commands/end_scrubbing_command.dart';
 import '../video_player_view_model.dart';
 import 'video_control_bar_widget_controller.dart';
 
@@ -95,7 +95,7 @@ class VideoControlBarWidget extends StatelessWidget {
                               ),
                               onPressed: () {
                                 eventBus.publish(
-                                  TogglePlayUseCase(
+                                  TogglePlayCommand(
                                     currentIsPlaying: isPlaying,
                                   ),
                                 );
@@ -112,7 +112,7 @@ class VideoControlBarWidget extends StatelessWidget {
                               ),
                               onPressed: () {
                                 eventBus.publish(
-                                  ToggleLoopingUseCase(
+                                  ToggleLoopingCommand(
                                     currentIsLooping: isLooping,
                                   ),
                                 );
@@ -131,7 +131,7 @@ class VideoControlBarWidget extends StatelessWidget {
                               ),
                               onPressed: () {
                                 eventBus.publish(
-                                  ToggleMuteUseCase(
+                                  ToggleMuteCommand(
                                     currentIsMuted: isMuted,
                                     currentVolume: volume,
                                   ),
@@ -154,7 +154,7 @@ class VideoControlBarWidget extends StatelessWidget {
                                   focusNode: controller.volumeFocusNode,
                                   value: volume,
                                   onChanged: (val) {
-                                    eventBus.publish(SetVolumeUseCase(val));
+                                    eventBus.publish(SetVolumeCommand(val));
                                   },
                                 ),
                               ),
@@ -254,18 +254,18 @@ class _TimeSlider extends StatelessWidget {
                       ctrl.removeThumbnail();
                       ctrl.localScrubValue = val;
                       eventBus.publish(
-                        StartScrubbingUseCase(currentIsPlaying: isPlaying),
+                        StartScrubbingCommand(currentIsPlaying: isPlaying),
                       );
                     },
                     onChanged: (val) {
                       ctrl.localScrubValue = val;
                       eventBus.publish(
-                        UpdateScrubValueUseCase(val, isScrubbing: true),
+                        UpdateScrubValueCommand(val, isScrubbing: true),
                       );
                     },
                     onChangeEnd: (val) {
                       eventBus.publish(
-                        EndScrubbingUseCase(
+                        EndScrubbingCommand(
                           seconds: val,
                           wasPlayingBeforeScrub: context
                               .read<VideoPlayerViewModel>()

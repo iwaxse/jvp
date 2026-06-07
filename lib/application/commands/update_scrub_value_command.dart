@@ -19,14 +19,15 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class ToggleLoopingUseCase extends AppCommand {
-  final bool currentIsLooping;
+class UpdateScrubValueCommand extends AppCommand {
+  final double seconds;
+  final bool isScrubbing;
 
-  ToggleLoopingUseCase({required this.currentIsLooping});
+  UpdateScrubValueCommand(this.seconds, {required this.isScrubbing});
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    final nextLooping = !currentIsLooping;
-    eventBus.publish(LoopingStateEvent(nextLooping));
+    await repository.seek(seconds, accurate: !isScrubbing);
+    await repository.updateTexture();
   }
 }

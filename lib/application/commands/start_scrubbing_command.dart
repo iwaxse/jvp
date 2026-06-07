@@ -19,14 +19,22 @@
 import '../app_event_bus.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class SetVolumeUseCase extends AppCommand {
-  final double volume;
+class StartScrubbingCommand extends AppCommand {
+  final bool currentIsPlaying;
 
-  SetVolumeUseCase(this.volume);
+  StartScrubbingCommand({required this.currentIsPlaying});
 
   @override
   Future<void> execute(VideoRepository repository, AppEventBus eventBus) async {
-    await repository.setVolume(volume);
-    eventBus.publish(MuteStateEvent(isMuted: volume <= 0.0, volume: volume));
+    if (currentIsPlaying) {
+      await repository.setPlaying(false);
+      eventBus.publish(PlaybackStateEvent(false));
+    }
+    eventBus.publish(
+      ScrubbingStateEvent(
+        isScrubbing: true,
+        wasPlayingBeforeScrub: currentIsPlaying,
+      ),
+    );
   }
 }

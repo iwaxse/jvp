@@ -20,7 +20,7 @@ import '../app_event_bus.dart';
 import '../../../domain/models/video_models.dart';
 import '../../../domain/repository/video_repository.dart';
 
-class StepFrameUseCase extends AppCommand {
+class StepFrameCommand extends AppCommand {
   final int frames;
   final bool currentIsPlaying;
   final double currentPosSecs;
@@ -28,7 +28,7 @@ class StepFrameUseCase extends AppCommand {
   final double durationSecs;
   final bool accurate;
 
-  StepFrameUseCase({
+  StepFrameCommand({
     required this.frames,
     required this.currentIsPlaying,
     required this.currentPosSecs,
