@@ -179,19 +179,41 @@ class JvpTexture: NSObject, FlutterTexture {
     }
 
     func openVideo(path: String) -> Bool {
+        let url: URL
+        if path.hasPrefix("http://") || path.hasPrefix("https://") {
+            guard let remoteURL = URL(string: path) else { return false }
+            url = remoteURL
+        } else {
+            url = URL(fileURLWithPath: path)
+        }
+
+        guard url.isFileURL else {
+            return openVideo(url: url)
+        }
+
+        // File Provider placeholders (including Google Drive online-only files) need a
+        // coordinated read so the provider can materialize the file before AVFoundation
+        // inspects it. The explicit play action is the user's request to fetch the file.
+        let coordinator = NSFileCoordinator(filePresenter: nil)
+        var coordinationError: NSError?
+        var opened = false
+        coordinator.coordinate(readingItemAt: url, options: [], error: &coordinationError) { coordinatedURL in
+            opened = self.openVideo(url: coordinatedURL)
+        }
+
+        if let coordinationError {
+            NSLog("JVP could not prepare the selected video: %@", coordinationError.localizedDescription)
+            return false
+        }
+        return opened
+    }
+
+    private func openVideo(url: URL) -> Bool {
         cleanupPlayer()
         clearPixelBuffer()
         renderCurrentFrame()
         onFrameAvailable()
-        
-        let url: URL
-        if path.hasPrefix("http://") || path.hasPrefix("https://") {
-            guard let u = URL(string: path) else { return false }
-            url = u
-        } else {
-            url = URL(fileURLWithPath: path)
-        }
-        
+
         let asset = AVURLAsset(url: url, options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
         let keys = ["duration", "tracks"]
         let semaphore = DispatchSemaphore(value: 0)

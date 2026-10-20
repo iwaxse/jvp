@@ -76,7 +76,7 @@ void main(List<String> args) async {
           lazy: false,
         ),
         ChangeNotifierProvider<MediaLibraryController>(
-          create: (_) => MediaLibraryController(repository)..load(),
+          create: (_) => MediaLibraryController(repository, eventBus)..load(),
         ),
         ChangeNotifierProvider<EffectController>(
           create: (_) => EffectController(eventBus)..init(),
@@ -85,9 +85,9 @@ void main(List<String> args) async {
           create: (_) => ThumbnailController(repository, eventBus)..init(),
         ),
         ChangeNotifierProvider<PlaylistController>(
-          create: (_) => PlaylistController(playlistRepository, eventBus)
+          create: (context) => PlaylistController(playlistRepository, eventBus)
             ..load()
-            ..init(viewModel),
+            ..init(viewModel, context.read<MediaLibraryController>()),
         ),
         ChangeNotifierProvider<VideoPlayerViewModel>.value(value: viewModel),
       ],

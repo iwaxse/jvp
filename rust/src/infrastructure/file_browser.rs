@@ -74,26 +74,14 @@ fn normalize_roots(roots: Vec<String>) -> Vec<String> {
         .collect()
 }
 
-fn default_roots() -> Vec<String> {
-    env::current_dir()
-        .ok()
-        .map(|dir| vec![dir.to_string_lossy().to_string()])
-        .unwrap_or_else(|| vec![".".to_string()])
-}
-
 fn load_roots() -> Vec<String> {
     let path = config_path();
     let loaded = fs::read_to_string(path)
         .ok()
         .and_then(|content| serde_json::from_str::<RootsConfig>(&content).ok())
-        .map(|config| normalize_roots(config.roots))
-        .unwrap_or_default();
+        .map(|config| normalize_roots(config.roots));
 
-    if loaded.is_empty() {
-        default_roots()
-    } else {
-        loaded
-    }
+    loaded.unwrap_or_default()
 }
 
 fn save_roots(roots: &[String]) -> Result<(), String> {
@@ -119,7 +107,6 @@ fn is_supported_media_file(path: &Path) -> bool {
                     | "webm"
                     | "avi"
                     | "flv"
-                    | "ts"
                     | "m2ts"
                     | "mts"
                     | "mpg"
