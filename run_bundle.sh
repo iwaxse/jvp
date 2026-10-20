@@ -84,12 +84,11 @@ install_name_tool -id "@executable_path/../Frameworks/librust_lib_jvp.dylib" "$F
 # 6. Create Zip Archive for Distribution
 echo "📦 Creating zip archive for distribution..."
 ZIP_NAME="jvp-macos.zip"
-cd build/macos/Build/Products/Release
-zip -r "../../../../$ZIP_NAME" jvp.app > /dev/null
-cd - > /dev/null
-
-# もし build/ に置きたい場合はこちら (今回はルートに置いて見つけやすくするね！)
-mv "$ZIP_NAME" "build/$ZIP_NAME"
+ZIP_OUTPUT_PATH="$PWD/build/$ZIP_NAME"
+(
+  cd build/macos/Build/Products/Release
+  zip -r "$ZIP_OUTPUT_PATH" jvp.app > /dev/null
+)
 
 echo "✨ DONE! Your rogue app is ready at: $APP_PATH"
 echo "📦 Distribution zip created at: build/$ZIP_NAME"

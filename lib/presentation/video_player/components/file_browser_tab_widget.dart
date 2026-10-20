@@ -151,13 +151,15 @@ class FileBrowserTabWidget extends StatelessWidget {
               ),
             )
           else if (files.isEmpty)
-            const SliverFillRemaining(
+            SliverFillRemaining(
               hasScrollBody: false,
               child: Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
                   child: Text(
-                    'No playable files found in the configured folders.',
+                    roots.isEmpty
+                        ? 'No media folders selected. Use Search roots to choose folders to scan.'
+                        : 'No playable files found in the configured folders.',
                     style: TextStyle(color: Color(0xFF888888), fontSize: 12),
                     textAlign: TextAlign.center,
                   ),

@@ -27,6 +27,7 @@ import '../../../application/usecase/play_next_track_usecase.dart';
 import '../../../domain/models/video_models.dart';
 import '../../../domain/repository/playlist_repository.dart';
 import '../video_player_view_model.dart';
+import 'media_library_controller.dart';
 
 class PlaylistController extends ChangeNotifier {
   final PlaylistRepository _playlistRepository;
@@ -48,10 +49,13 @@ class PlaylistController extends ChangeNotifier {
       _clearUseCase = ClearPlaylistUseCase(_playlistRepository),
       _playNextUseCase = PlayNextTrackUseCase();
 
-  void init(VideoPlayerViewModel viewModel) {
+  void init(VideoPlayerViewModel viewModel, MediaLibraryController libraryController) {
     _subscription = _eventBus.stream.listen((event) async {
       if (event is PlaybackCompletedEvent) {
-        await playNext(viewModel.currentMediaPath, viewModel.volume);
+        final success = await playNext(viewModel.currentMediaPath, viewModel.volume);
+        if (!success) {
+          await libraryController.playNext(viewModel.currentMediaPath, viewModel.volume);
+        }
       }
     });
   }

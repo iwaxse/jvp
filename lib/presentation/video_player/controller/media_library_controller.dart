@@ -17,11 +17,15 @@
  */
 
 import 'package:flutter/foundation.dart';
+import '../../../application/app_event_bus.dart';
+import '../../../application/usecase/play_next_track_usecase.dart';
 import '../../../domain/models/video_models.dart';
 import '../../../domain/repository/video_repository.dart';
 
 class MediaLibraryController extends ChangeNotifier {
   final VideoRepository _repository;
+  final AppEventBus _eventBus;
+  final PlayNextTrackUseCase _playNextUseCase;
 
   bool _isLoading = false;
   String? _error;
@@ -33,7 +37,8 @@ class MediaLibraryController extends ChangeNotifier {
   List<String> get searchRoots => List.unmodifiable(_searchRoots);
   List<MediaFileEntry> get files => List.unmodifiable(_files);
 
-  MediaLibraryController(this._repository);
+  MediaLibraryController(this._repository, this._eventBus)
+      : _playNextUseCase = PlayNextTrackUseCase();
 
   Future<void> load() async {
     _isLoading = true;
@@ -41,7 +46,9 @@ class MediaLibraryController extends ChangeNotifier {
     notifyListeners();
     try {
       _searchRoots = await _repository.getMediaSearchRoots();
-      _files = await _repository.scanMediaFiles();
+      _files = _searchRoots.isEmpty
+          ? []
+          : await _repository.scanMediaFiles();
     } catch (e) {
       _error = e.toString();
       _files = [];
@@ -58,7 +65,9 @@ class MediaLibraryController extends ChangeNotifier {
     try {
       await _repository.setMediaSearchRoots(roots);
       _searchRoots = await _repository.getMediaSearchRoots();
-      _files = await _repository.scanMediaFiles();
+      _files = _searchRoots.isEmpty
+          ? []
+          : await _repository.scanMediaFiles();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -69,5 +78,14 @@ class MediaLibraryController extends ChangeNotifier {
 
   Future<void> refresh() async {
     await load();
+  }
+
+  Future<bool> playNext(String? currentPath, double volume) async {
+    return await _playNextUseCase.execute(
+      playlist: _files,
+      currentPath: currentPath,
+      volume: volume,
+      eventBus: _eventBus,
+    );
   }
 }
